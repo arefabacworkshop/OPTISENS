@@ -12,7 +12,7 @@ public static class Camera
         float pitchRad = (float)(pitchDeg * Math.PI / 180.0);
         float yawRad = (float)(yawDeg * Math.PI / 180.0);
         var rx = Mat4.RotationX(-pitchRad);
-        var ry = Mat4.RotationY(-yawRad);
+        var ry = Mat4.RotationY(yawRad);
         var view = Mat4.Multiply(rx, ry);
         return Mat4.Multiply(proj, view);
     }

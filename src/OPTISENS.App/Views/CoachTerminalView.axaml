@@ -1,0 +1,30 @@
+<UserControl x:Class="OPTISENS.App.Views.CoachTerminalView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OPTISENS.App.ViewModels"
+             x:DataType="vm:CoachViewModel"
+             x:CompileBindings="True">
+  <Border Background="#12151B" CornerRadius="12" Padding="16">
+    <DockPanel>
+      <TextBlock DockPanel.Dock="Top"
+                 Text="{Binding StatusBanner}"
+                 IsVisible="{Binding StatusBanner, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                 Foreground="#FFB03A" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+      <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+        <TextBox Grid.Column="0" Text="{Binding InputText}"
+                 Watermark="Ask the coach… e.g. &quot;make it 5% slower&quot;"/>
+        <Button Grid.Column="1" Content="Send" Command="{Binding SendCommand}" Margin="8,0,0,0"/>
+      </Grid>
+
+      <ScrollViewer MaxHeight="260">
+        <ItemsControl ItemsSource="{Binding Transcript}">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ChatLine">
+            <TextBlock Text="{Binding Text}" TextWrapping="Wrap"
+                       Foreground="{Binding Brush}" Margin="0,4"/>
+          </DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

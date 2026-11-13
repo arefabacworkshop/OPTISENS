@@ -1,0 +1,25 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OPTISENS.App.ViewModels"
+             xmlns:views="using:OPTISENS.App.Views"
+             x:Class="OPTISENS.App.App"
+             RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <FluentTheme/>
+  </Application.Styles>
+
+  <Application.DataTemplates>
+    <DataTemplate DataType="{x:Type vm:SetupViewModel}">
+      <views:SetupView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HardwareProfileViewModel}">
+      <views:HardwareProfileView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SessionViewModel}">
+      <views:CalibrationSessionView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ResultsViewModel}">
+      <views:ResultsDashboardView/>
+    </DataTemplate>
+  </Application.DataTemplates>
+</Application>

@@ -1,0 +1,63 @@
+<UserControl x:Class="OPTISENS.App.Views.CalibrationSessionView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OPTISENS.App.ViewModels"
+             xmlns:controls="using:OPTISENS.App.Controls"
+             x:DataType="vm:SessionViewModel"
+             x:CompileBindings="True"
+             Focusable="True">
+  <Grid Background="#0E1116">
+
+    <!-- 3D calibration viewport -->
+    <controls:GlViewport x:Name="Viewport" Cursor="None"/>
+
+    <!-- centered crosshair overlay -->
+    <Canvas IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Rectangle Width="2" Height="14" Fill="#E5FFFFFF" Canvas.Left="-1"  Canvas.Top="-16"/>
+      <Rectangle Width="2" Height="14" Fill="#E5FFFFFF" Canvas.Left="-1"  Canvas.Top="2"/>
+      <Rectangle Width="14" Height="2" Fill="#E5FFFFFF" Canvas.Left="-16" Canvas.Top="-1"/>
+      <Rectangle Width="14" Height="2" Fill="#E5FFFFFF" Canvas.Left="2"   Canvas.Top="-1"/>
+    </Canvas>
+
+    <!-- Dev overlay (dev flag + F12) -->
+    <Border IsVisible="{Binding DevOverlayVisible}"
+            VerticalAlignment="Top" HorizontalAlignment="Left" Margin="16"
+            Background="#C812151B" CornerRadius="6" Padding="12,8" IsHitTestVisible="False">
+      <TextBlock Text="{Binding DevOverlayText}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Foreground="#00E5FF"/>
+    </Border>
+
+    <!-- Cursor confinement fallback warning -->
+    <Border IsVisible="{Binding CursorWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+            VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16"
+            Background="#C84A2020" CornerRadius="6" Padding="12,6">
+      <TextBlock Text="{Binding CursorWarning}" Foreground="#FFB4B4" FontSize="12"/>
+    </Border>
+
+    <!-- HUD overlay (D16: no sensitivity values, ever) -->
+    <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,28"
+            Background="#B012151B" CornerRadius="8" Padding="18,10" IsHitTestVisible="False">
+      <StackPanel Spacing="6" MinWidth="300">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0" Text="{Binding RoundText}" Foreground="#E7ECF3"/>
+          <TextBlock Grid.Column="1" Text="{Binding BlockStatus}" Foreground="#9AA3B2"/>
+        </Grid>
+        <ProgressBar Value="{Binding BlockProgress}" Minimum="0" Maximum="1" Height="4"/>
+        <TextBlock Text="{Binding LiveStatus}" Foreground="#7C9FFF" FontSize="12"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Esc abort confirmation -->
+    <Border IsVisible="{Binding ShowAbortConfirm}" Background="#CC0E1116">
+      <Border Background="#1C1F26" CornerRadius="10" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="360">
+        <StackPanel Spacing="14">
+          <TextBlock Text="Abort calibration?" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Abort and view results from completed rounds?" TextWrapping="Wrap" Opacity="0.8"/>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Button Grid.Column="0" Content="Continue" Command="{Binding CancelAbortCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+            <Button Grid.Column="1" Content="Abort &amp; View" Command="{Binding ConfirmAbortCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#C94A4A"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>

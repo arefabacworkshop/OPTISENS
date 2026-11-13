@@ -1,0 +1,125 @@
+<UserControl x:Class="OPTISENS.App.Views.SetupView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OPTISENS.App.ViewModels"
+             x:DataType="vm:SetupViewModel"
+             x:CompileBindings="True">
+  <Grid Background="#0B0E14">
+    <!-- subtle ambient radial glow -->
+    <Ellipse Width="640" Height="640" HorizontalAlignment="Center" VerticalAlignment="Center"
+             IsHitTestVisible="False" Opacity="0.16">
+      <Ellipse.Fill>
+        <RadialGradientBrush>
+          <GradientStop Color="#7C9FFF" Offset="0"/>
+          <GradientStop Color="#000B0E14" Offset="1"/>
+        </RadialGradientBrush>
+      </Ellipse.Fill>
+    </Ellipse>
+
+    <!-- frosted Apple-style setup card -->
+    <Border MaxWidth="540" HorizontalAlignment="Center" VerticalAlignment="Center"
+            Margin="24" CornerRadius="20" Padding="36"
+            Background="#E6161A22" BorderBrush="#26FFFFFF" BorderThickness="1"
+            BoxShadow="0 24 64 0 #80000000">
+      <StackPanel Spacing="20">
+
+        <!-- header -->
+        <StackPanel Spacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+            <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="52" Height="52"/>
+            <StackPanel VerticalAlignment="Center" Spacing="4">
+              <TextBlock Text="OPTISENS" FontSize="15" FontWeight="Bold"
+                         LetterSpacing="2.2" Foreground="#F2F5FA"/>
+              <Border Background="#1E7C9FFF" CornerRadius="999" Padding="9,3" HorizontalAlignment="Left">
+                <TextBlock Text="FIRST-RUN SETUP" FontSize="10" FontWeight="SemiBold"
+                           LetterSpacing="1.4" Foreground="#9AB4FF"/>
+              </Border>
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Text="{Binding StatusTitle}" FontSize="28" FontWeight="SemiBold"
+                     LetterSpacing="-0.5" Foreground="#F2F5FA"/>
+          <TextBlock Text="{Binding StatusSubtitle}" FontSize="14" LineHeight="20"
+                     Foreground="#9AA3B2" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <!-- folder selection (choosing phase) -->
+        <StackPanel IsVisible="{Binding IsChoosingLocation}" Spacing="10">
+          <TextBlock Text="Assets folder" FontSize="12" FontWeight="Medium" Foreground="#B4BCCB"/>
+          <Border Background="#10131A" BorderBrush="#22FFFFFF" BorderThickness="1"
+                  CornerRadius="12" Padding="14,10">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="{Binding TargetDirectory}"
+                         VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                         FontFamily="Consolas,Menlo,monospace" FontSize="12" Foreground="#DCE3EE"/>
+              <Button Grid.Column="1" Content="Choose…" Command="{Binding BrowseFolderCommand}"
+                      Margin="10,0,0,0" Padding="12,6" CornerRadius="8"
+                      Background="#24FFFFFF" Foreground="#F2F5FA" FontSize="12"/>
+            </Grid>
+          </Border>
+          <Button Content="Use default installation folder" Command="{Binding ResetDefaultFolderCommand}"
+                  Background="Transparent" Foreground="#7C9FFF" Padding="0" FontSize="12"
+                  HorizontalAlignment="Left"/>
+        </StackPanel>
+
+        <!-- live download progress (downloading phase) -->
+        <StackPanel IsVisible="{Binding IsDownloading}" Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Text="{Binding CurrentFileText}"
+                       FontSize="12" Foreground="#DCE3EE" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Grid.Column="1" Text="{Binding ProgressPercentText}"
+                       FontSize="13" FontWeight="SemiBold" Foreground="#00E5FF"
+                       FontFamily="Consolas,Menlo,monospace"/>
+          </Grid>
+          <ProgressBar Value="{Binding ProgressFraction}" Minimum="0" Maximum="1"
+                       Height="6" CornerRadius="3" Foreground="#00E5FF" Background="#1EFFFFFF"/>
+          <TextBlock Text="{Binding SpeedEtaText}" FontSize="12" Foreground="#9AA3B2"
+                     FontFamily="Consolas,Menlo,monospace"/>
+        </StackPanel>
+
+        <!-- asset checklist -->
+        <Border Background="#0E1117" BorderBrush="#14FFFFFF" BorderThickness="1"
+                CornerRadius="12" Padding="14,10">
+          <ItemsControl ItemsSource="{Binding FileItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AssetFileItem">
+                <Grid ColumnDefinitions="*,Auto" Margin="0,3">
+                  <TextBlock Grid.Column="0" Text="{Binding RelativePath}"
+                             FontFamily="Consolas,Menlo,monospace" FontSize="11.5" Foreground="#B8C1D1"/>
+                  <TextBlock Grid.Column="1" Text="{Binding StatusText}"
+                             FontSize="11.5" FontWeight="Medium" Foreground="{Binding StatusBrush}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+
+        <!-- error banner -->
+        <Border IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                Background="#33FF5A5A" BorderBrush="#66FF5A5A" BorderThickness="1"
+                CornerRadius="10" Padding="12,8">
+          <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFD4D4" FontSize="12" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- actions -->
+        <StackPanel Spacing="10">
+          <Button Content="Continue" Command="{Binding ContinueCommand}"
+                  IsVisible="{Binding IsChoosingLocation}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Padding="14,12" CornerRadius="12"
+                  Background="#7C9FFF" Foreground="#0B0E14" FontWeight="SemiBold" FontSize="14"/>
+
+          <Button Content="Cancel download" Command="{Binding CancelDownloadCommand}"
+                  IsVisible="{Binding IsDownloading}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Padding="14,12" CornerRadius="12"
+                  Background="#24FFFFFF" Foreground="#F2F5FA" FontWeight="Medium" FontSize="14"/>
+
+          <Button Content="Skip AI Coach for now" Command="{Binding SkipAiCommand}"
+                  IsVisible="{Binding IsChoosingLocation}"
+                  HorizontalAlignment="Center" Background="Transparent"
+                  Foreground="#8A93A4" FontSize="12" Padding="6,4"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

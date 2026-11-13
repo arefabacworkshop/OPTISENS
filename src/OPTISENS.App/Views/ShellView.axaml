@@ -1,0 +1,20 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OPTISENS.App.ViewModels"
+        x:Class="OPTISENS.App.Views.ShellView"
+        x:DataType="vm:ShellViewModel"
+        x:CompileBindings="True"
+        Title="OPTISENS — Sensitivity Calibration"
+        Icon="avares://OPTISENS.App/Assets/icon.png"
+        Width="1280" Height="800"
+        MinWidth="960" MinHeight="640"
+        Background="#0E1116">
+  <DockPanel>
+    <Border DockPanel.Dock="Top"
+            IsVisible="{Binding RemediationBanner, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+            Background="#4A2020" Padding="14,10">
+      <TextBlock Text="{Binding RemediationBanner}" Foreground="#FFD4D4" TextWrapping="Wrap"/>
+    </Border>
+    <ContentControl Content="{Binding CurrentPage}"/>
+  </DockPanel>
+</Window>

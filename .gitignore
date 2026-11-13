@@ -3,7 +3,7 @@ obj/
 dist/
 models/
 AppDir/
-*.app/
+/*.app/
 *.dmg
 *.deb
 *.AppImage

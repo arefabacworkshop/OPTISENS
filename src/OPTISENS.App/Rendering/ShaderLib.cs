@@ -5,7 +5,6 @@ namespace OPTISENS.App.Rendering;
 public static class ShaderLib
 {
     public const string TargetVert = """
-        #version 330 core
         layout(location=0) in vec3 aPos;
         layout(location=1) in vec3 aNormal;
         uniform mat4 uMvp;
@@ -17,7 +16,6 @@ public static class ShaderLib
         """;
 
     public const string TargetFrag = """
-        #version 330 core
         in vec3 vNormal;
         out vec4 FragColor;
         uniform vec3 uColor;
@@ -28,7 +26,6 @@ public static class ShaderLib
         """;
 
     public const string GridVert = """
-        #version 330 core
         layout(location=0) in vec3 aPos;
         uniform mat4 uMvp;
         void main() {
@@ -37,7 +34,6 @@ public static class ShaderLib
         """;
 
     public const string GridFrag = """
-        #version 330 core
         out vec4 FragColor;
         uniform vec4 uColor;
         void main() {
@@ -47,8 +43,13 @@ public static class ShaderLib
 
     public static uint CompileProgram(GL gl, string vertSrc, string fragSrc)
     {
-        uint vs = CompileShader(gl, ShaderType.VertexShader, vertSrc);
-        uint fs = CompileShader(gl, ShaderType.FragmentShader, fragSrc);
+        string version = gl.GetStringS(StringName.Version) ?? "";
+        string header = version.Contains("OpenGL ES", StringComparison.OrdinalIgnoreCase)
+            ? "#version 300 es\nprecision highp float;\n"
+            : "#version 330 core\n";
+
+        uint vs = CompileShader(gl, ShaderType.VertexShader, header + vertSrc);
+        uint fs = CompileShader(gl, ShaderType.FragmentShader, header + fragSrc);
         uint prog = gl.CreateProgram();
         gl.AttachShader(prog, vs);
         gl.AttachShader(prog, fs);

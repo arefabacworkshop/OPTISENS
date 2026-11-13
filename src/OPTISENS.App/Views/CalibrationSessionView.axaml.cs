@@ -20,6 +20,7 @@ public partial class CalibrationSessionView : UserControl
     {
         Focus();
         Viewport.FrameRendered += OnFrameRendered;
+        Viewport.GlInitFailed += OnGlInitFailed;
         if (DataContext is SessionViewModel vm)
         {
             vm.RequestCursorLock += LockCursor;
@@ -30,12 +31,19 @@ public partial class CalibrationSessionView : UserControl
     private void OnDetached(object? sender, VisualTreeAttachmentEventArgs e)
     {
         Viewport.FrameRendered -= OnFrameRendered;
+        Viewport.GlInitFailed -= OnGlInitFailed;
         if (DataContext is SessionViewModel vm)
         {
             vm.RequestCursorLock -= LockCursor;
             vm.RequestCursorUnlock -= UnlockCursor;
         }
         UnlockCursor();
+    }
+
+    private void OnGlInitFailed(string msg)
+    {
+        if (DataContext is SessionViewModel vm)
+            vm.CursorWarning = $"OpenGL init failed: {msg}";
     }
 
     private void OnFrameRendered(double ms)
@@ -66,12 +74,11 @@ public partial class CalibrationSessionView : UserControl
         {
             var top = TopLevel.GetTopLevel(this);
             if (top is null) return;
-            var center = Viewport.TranslatePoint(new Point(Viewport.Bounds.Width / 2, Viewport.Bounds.Height / 2), top);
-            if (center is { } p)
-            {
-                var screenPt = top.PointToScreen(p);
-                CursorHelper.LockAndHide(screenPt.X, screenPt.Y);
-            }
+            var size = Viewport.Bounds.Width > 0 ? Viewport.Bounds.Size : top.ClientSize;
+            var center = Viewport.TranslatePoint(new Point(size.Width / 2, size.Height / 2), top)
+                         ?? new Point(top.ClientSize.Width / 2, top.ClientSize.Height / 2);
+            var screenPt = top.PointToScreen(center);
+            CursorHelper.LockAndHide(screenPt.X, screenPt.Y);
         }
         catch
         {

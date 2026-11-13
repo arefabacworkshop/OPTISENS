@@ -124,7 +124,7 @@ public sealed class RoundController
                 leftEdge = true;
             _prevButtons = s.Buttons;
 
-            if (_phase is RoundPhase.BlockTracking or RoundPhase.BlockFlick or RoundPhase.BlockDot)
+            if (_phase is RoundPhase.RoundIntro or RoundPhase.BlockTracking or RoundPhase.BlockFlick or RoundPhase.BlockDot)
                 ApplyMotionSample(in s);
         }
 

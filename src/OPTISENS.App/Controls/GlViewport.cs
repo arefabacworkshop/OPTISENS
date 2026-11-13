@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
@@ -41,8 +42,9 @@ public sealed class GlViewport : OpenGlControlBase
     protected override void OnOpenGlRender(GlInterface gl, int fb)
     {
         if (_gl is null || _scene is null) return;
-        int w = Math.Max(1, (int)Bounds.Width);
-        int h = Math.Max(1, (int)Bounds.Height);
+        double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
+        int w = Math.Max(1, (int)(Bounds.Width * scale));
+        int h = Math.Max(1, (int)(Bounds.Height * scale));
         _gl.Viewport(0, 0, (uint)w, (uint)h);
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -50,6 +52,6 @@ public sealed class GlViewport : OpenGlControlBase
         sw.Stop();
         FrameRendered?.Invoke(sw.Elapsed.TotalMilliseconds);
 
-        Dispatcher.UIThread.Post(RequestNextFrameRendering, DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(RequestNextFrameRendering, DispatcherPriority.Render);
     }
 }

@@ -11,6 +11,7 @@ using OPTISENS.Core.Session;
 namespace OPTISENS.App.ViewModels;
 
 public readonly record struct RoundRow(
+    string RoundText,
     string ProbeText,
     string BsiText,
     string AccuracyText,
@@ -40,10 +41,20 @@ public partial class ProjectionCard : ObservableObject
 public partial class ResultsViewModel : ViewModelBase
 {
     [ObservableProperty] private string _heroText = "";
+    [ObservableProperty] private string _heroValueText = "";
     [ObservableProperty] private string _bandText = "";
     [ObservableProperty] private string _dataQualityNote = "";
     [ObservableProperty] private IReadOnlyList<GPPoint>? _curve;
     [ObservableProperty] private IReadOnlyList<ObservationPoint>? _observations;
+
+    public event Action? BackToMenuRequested;
+    public event Action? RecalibrateRequested;
+
+    [RelayCommand]
+    private void BackToMenu() => BackToMenuRequested?.Invoke();
+
+    [RelayCommand]
+    private void Recalibrate() => RecalibrateRequested?.Invoke();
 
     private double _dpi;
 
@@ -66,6 +77,7 @@ public partial class ResultsViewModel : ViewModelBase
         bool partial)
     {
         _dpi = dpi;
+        HeroValueText = $"{report.RecommendedCm360:F1}";
         HeroText = $"{report.RecommendedCm360:F1} cm/360";
         BandText = $"plausible band {report.BandLoCm360:F1} – {report.BandHiCm360:F1} cm/360";
 
@@ -80,10 +92,12 @@ public partial class ResultsViewModel : ViewModelBase
         Observations = report.Observations.Select(o => new ObservationPoint((o.Cm360 - report.Curve[0].Cm360) / span, o.YNorm)).ToArray();
 
         Rounds.Clear();
-        Rounds.Add(new RoundRow("Probe", "BSI", "Accuracy", "Norm Jerk", "|E_flick|"));
-        foreach (var s in scores)
+        Rounds.Add(new RoundRow("Round", "Probe", "BSI", "Accuracy", "Jerk", "|E_flick|"));
+        for (int i = 0; i < scores.Count; i++)
         {
+            var s = scores[i];
             Rounds.Add(new RoundRow(
+                $"#{i + 1}",
                 $"{s.Cm360:F1} cm",
                 $"{s.YNorm * 100:F1}",
                 $"{s.Components.Accuracy * 100:F0}%",
@@ -96,6 +110,7 @@ public partial class ResultsViewModel : ViewModelBase
 
     private void UpdateRecommendedCm360(double newCm360)
     {
+        HeroValueText = $"{newCm360:F1}";
         HeroText = $"{newCm360:F1} cm/360";
         RefreshProjections(newCm360);
     }

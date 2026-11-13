@@ -90,7 +90,7 @@ public sealed unsafe class Scene : IDisposable
         _gl.Enable(EnableCap.DepthTest);
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        _gl.ClearColor(0.055f, 0.067f, 0.086f, 1.0f); // #0E1116
+        _gl.ClearColor(0.0353f, 0.0392f, 0.0510f, 1.0f); // #090A0D
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         var vp = Camera.BuildViewProjection(state.YawDeg, state.PitchDeg, width, height);

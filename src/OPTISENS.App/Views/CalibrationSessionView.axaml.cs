@@ -55,18 +55,7 @@ public partial class CalibrationSessionView : UserControl
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (DataContext is not SessionViewModel vm) return;
-        if (e.Key == Key.Escape)
-        {
-            if (vm.ShowAbortConfirm)
-                vm.CancelAbortCommand.Execute(null);
-            else
-            {
-                UnlockCursor();
-                vm.RequestAbortPrompt();
-            }
-            e.Handled = true;
-        }
-        else if (e.Key == Key.F12)
+        if (e.Key == Key.F12)
         {
             vm.ToggleDevOverlay();
             e.Handled = true;

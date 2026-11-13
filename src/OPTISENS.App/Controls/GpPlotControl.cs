@@ -37,14 +37,14 @@ public sealed class GpPlotControl : Control
     private const double PadL = 44, PadR = 16, PadT = 16, PadB = 28;
 
     private static readonly IBrush BackgroundBrush = new SolidColorBrush(Color.Parse("#1C1F26"));
-    private static readonly IPen BorderPen = new Pen(new SolidColorBrush(Color.Parse("#2A2E37")), 1);
+    private static readonly IPen BorderPen = new Pen(new SolidColorBrush(Color.Parse("#242832")), 1);
     private static readonly IBrush BandBrush = new SolidColorBrush(Color.Parse("#2800E5FF"));
-    private static readonly IPen MeanPen = new Pen(new SolidColorBrush(Color.Parse("#FF00E5FF")), 2);
-    private static readonly IPen GuidePen = new Pen(new SolidColorBrush(Color.Parse("#88FFFFFF")), 1)
-        { DashStyle = new DashStyle(new double[] { 4, 4 }, 0) };
+    private static readonly IPen MeanPen = new Pen(new SolidColorBrush(Color.Parse("#FF00F0FF")), 2);
+    private static readonly IPen GuidePen = new Pen(new SolidColorBrush(Color.Parse("#44FFFFFF")), 1)
+        { DashStyle = new DashStyle(new double[] { 3, 3 }, 0) };
     private static readonly IBrush DotBrush = new SolidColorBrush(Color.Parse("#FFB03A"));
-    private static readonly IPen DotPen = new Pen(new SolidColorBrush(Color.Parse("#1C1F26")), 1);
-    private static readonly IBrush LabelBrush = new SolidColorBrush(Color.Parse("#9AA3B2"));
+    private static readonly IPen DotPen = new Pen(new SolidColorBrush(Color.Parse("#090A0D")), 1);
+    private static readonly IBrush LabelBrush = new SolidColorBrush(Color.Parse("#8E97A6"));
 
     private double MapX(double u) => PadL + u * (Bounds.Width - PadL - PadR);
     private double MapY(double z) => Bounds.Height - PadB - z * (Bounds.Height - PadT - PadB);

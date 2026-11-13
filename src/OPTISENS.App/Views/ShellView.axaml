@@ -7,9 +7,10 @@
         Title="OPTISENS — AI-Assisted Sensitivity Finder"
         Icon="avares://OPTISENS.App/Assets/icon.png"
         WindowState="FullScreen"
+        WindowDecorations="None"
         Width="1280" Height="800"
         MinWidth="960" MinHeight="640"
-        Background="#0E1116">
+        Background="#090A0D">
   <DockPanel>
     <Border DockPanel.Dock="Top"
             IsVisible="{Binding RemediationBanner, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"

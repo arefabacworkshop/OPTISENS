@@ -76,6 +76,8 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
 
             var coachVm = new CoachViewModel();
             var resultsVm = new ResultsViewModel(coachVm);
+            resultsVm.BackToMenuRequested += NavigateToProfile;
+            resultsVm.RecalibrateRequested += () => OnProfileReady(_activeProfile);
             resultsVm.LoadReport(report, scores, invalid, profile.Dpi, partial);
             _activeResults = resultsVm;
             CurrentPage = resultsVm;
@@ -86,15 +88,19 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         };
 
         _activeSession = sessionVm;
-        sessionVm.ReturnToMenuRequested += () =>
-        {
-            _activeSession?.Dispose();
-            _activeSession = null;
-            CurrentPage = CreateHardwareProfileVm();
-        };
+        sessionVm.ReturnToMenuRequested += NavigateToProfile;
         sessionVm.ExitRequested += ShutdownApp;
         CurrentPage = sessionVm;
         sessionVm.StartEngine();
+    }
+
+    public void NavigateToProfile()
+    {
+        _activeSession?.Dispose();
+        _activeSession = null;
+        _activeResults?.Coach.Dispose();
+        _activeResults = null;
+        CurrentPage = CreateHardwareProfileVm();
     }
 
     private static void ShutdownApp()

@@ -4,25 +4,33 @@
              xmlns:vm="using:OPTISENS.App.ViewModels"
              x:DataType="vm:CoachViewModel"
              x:CompileBindings="True">
-  <Border Background="#12151B" CornerRadius="12" Padding="16">
+  <Border Background="#12151B" BorderBrush="#242832" BorderThickness="1" CornerRadius="8" Padding="16">
     <DockPanel>
+      <TextBlock DockPanel.Dock="Top"
+                 Text="AI COACH TELEMETRY" FontSize="11" FontWeight="SemiBold"
+                 LetterSpacing="1.6" Foreground="#8E97A6" Margin="0,0,0,8"/>
+
       <TextBlock DockPanel.Dock="Top"
                  Text="{Binding StatusBanner}"
                  IsVisible="{Binding StatusBanner, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                 Foreground="#FFB03A" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                 Foreground="#FFB03A" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
       <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
         <TextBox Grid.Column="0" Text="{Binding InputText}"
+                 FontFamily="Consolas,Menlo,monospace" FontSize="12"
                  PlaceholderText="Ask the coach… e.g. &quot;make it 5% slower&quot;"/>
-        <Button Grid.Column="1" Content="Send" Command="{Binding SendCommand}" Margin="8,0,0,0"/>
+        <Button Grid.Column="1" Content="Send" Command="{Binding SendCommand}" Margin="8,0,0,0" Padding="14,8"/>
       </Grid>
 
       <ScrollViewer MaxHeight="260">
         <ItemsControl ItemsSource="{Binding Transcript}">
-          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ChatLine">
-            <TextBlock Text="{Binding Text}" TextWrapping="Wrap"
-                       Foreground="{Binding Brush}" Margin="0,4"/>
-          </DataTemplate></ItemsControl.ItemTemplate>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ChatLine">
+              <TextBlock Text="{Binding Text}" TextWrapping="Wrap"
+                         FontFamily="Consolas,Menlo,monospace" FontSize="12"
+                         Foreground="{Binding Brush}" Margin="0,4"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
         </ItemsControl>
       </ScrollViewer>
     </DockPanel>

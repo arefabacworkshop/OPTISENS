@@ -85,12 +85,14 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    private void ConfirmAbort()
+    private void Abort()
     {
         ShowAbortConfirm = false;
+        _cts.Cancel();
+        RequestCursorUnlock?.Invoke();
         _controller.Abort(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
         if (_controller.FinalReport is null)
-            ReturnToMenu();
+            ReturnToMenuRequested?.Invoke();
     }
 
     [RelayCommand]

@@ -6,7 +6,7 @@
              x:DataType="vm:SessionViewModel"
              x:CompileBindings="True"
              Focusable="True">
-  <Grid Background="#0E1116">
+  <Grid Background="#090A0D">
 
     <!-- 3D calibration viewport -->
     <controls:GlViewport x:Name="Viewport" Cursor="None"/>
@@ -22,49 +22,41 @@
     <!-- Dev overlay (dev flag + F12) -->
     <Border IsVisible="{Binding DevOverlayVisible}"
             VerticalAlignment="Top" HorizontalAlignment="Left" Margin="16"
-            Background="#C812151B" CornerRadius="6" Padding="12,8" IsHitTestVisible="False">
-      <TextBlock Text="{Binding DevOverlayText}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Foreground="#00E5FF"/>
+            Background="#D912151B" BorderBrush="#242832" BorderThickness="1"
+            CornerRadius="4" Padding="12,8" IsHitTestVisible="False">
+      <TextBlock Text="{Binding DevOverlayText}" Classes="tabular"
+                 FontFamily="Consolas,Menlo,monospace" FontSize="12" Foreground="#00F0FF"/>
     </Border>
 
-    <!-- Cursor confinement fallback warning -->
+    <!-- Cursor confinement fallback / GL error warning -->
     <Border IsVisible="{Binding CursorWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
             VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16"
-            Background="#C84A2020" CornerRadius="6" Padding="12,6">
-      <TextBlock Text="{Binding CursorWarning}" Foreground="#FFB4B4" FontSize="12"/>
+            Background="#D93A1616" BorderBrush="#66FF4B4B" BorderThickness="1"
+            CornerRadius="4" Padding="12,6">
+      <TextBlock Text="{Binding CursorWarning}" Foreground="#FF4B4B" FontSize="12"/>
     </Border>
 
-    <!-- HUD overlay (D16: no sensitivity values, ever) -->
-    <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,28"
-            Background="#B012151B" CornerRadius="8" Padding="18,10" IsHitTestVisible="False">
-      <StackPanel Spacing="6" MinWidth="300">
+    <!-- Floating HUD pill (D16: no sensitivity values, ever) -->
+    <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,32"
+            Background="#D912151B" BorderBrush="#242832" BorderThickness="1"
+            CornerRadius="8" Padding="18,12" IsHitTestVisible="False">
+      <StackPanel Spacing="8" MinWidth="360">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Grid.Column="0" Text="{Binding RoundText}" Foreground="#E7ECF3"/>
-          <TextBlock Grid.Column="1" Text="{Binding BlockStatus}" Foreground="#9AA3B2"/>
+          <TextBlock Grid.Column="0" Text="{Binding RoundText}" Classes="tabular"
+                     FontWeight="SemiBold" FontSize="13" Foreground="#F4F6F8"/>
+          <TextBlock Grid.Column="1" Text="{Binding BlockStatus}"
+                     FontSize="12" Foreground="#8E97A6"/>
         </Grid>
-        <ProgressBar Value="{Binding BlockProgress}" Minimum="0" Maximum="1" Height="4"/>
-        <TextBlock Text="{Binding LiveStatus}" Foreground="#7C9FFF" FontSize="12"/>
+        <ProgressBar Value="{Binding BlockProgress}" Minimum="0" Maximum="1"
+                     Height="2" Foreground="#00F0FF" Background="#242832"/>
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <TextBlock Grid.Column="0" Text="{Binding LiveStatus}" Classes="tabular"
+                     Foreground="#00F0FF" FontSize="12"/>
+          <TextBlock Grid.Column="1" Text="[ESC] Abort Round"
+                     FontFamily="Consolas,Menlo,monospace" FontSize="11" Foreground="#525A68"
+                     VerticalAlignment="Center"/>
+        </Grid>
       </StackPanel>
-    </Border>
-
-    <!-- Esc pause & navigation menu -->
-    <Border IsVisible="{Binding ShowAbortConfirm}" Background="#CC0E1116">
-      <Border Background="#1C1F26" BorderBrush="#26FFFFFF" BorderThickness="1"
-              CornerRadius="14" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="320" MaxWidth="380">
-        <StackPanel Spacing="12">
-          <TextBlock Text="Calibration Paused" FontSize="20" FontWeight="SemiBold"/>
-          <TextBlock Text="Press Esc or Resume to continue, or return to the menu." TextWrapping="Wrap" Opacity="0.75" FontSize="13"/>
-          <Button Content="Resume" Command="{Binding CancelAbortCommand}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
-                  Background="#7C9FFF" Foreground="#0E1116" FontWeight="SemiBold" CornerRadius="8"/>
-          <Button Content="Main Menu" Command="{Binding ReturnToMenuCommand}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10" CornerRadius="8"/>
-          <Button Content="Abort &amp; View Results" Command="{Binding ConfirmAbortCommand}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10" CornerRadius="8"/>
-          <Button Content="Exit OPTISENS" Command="{Binding ExitAppCommand}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
-                  Background="#C94A4A" Foreground="#FFFFFF" FontWeight="Medium" CornerRadius="8"/>
-        </StackPanel>
-      </Border>
     </Border>
   </Grid>
 </UserControl>

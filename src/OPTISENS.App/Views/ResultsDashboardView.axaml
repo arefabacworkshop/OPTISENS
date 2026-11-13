@@ -6,67 +6,111 @@
              xmlns:controls="using:OPTISENS.App.Controls"
              x:DataType="vm:ResultsViewModel"
              x:CompileBindings="True">
-  <ScrollViewer>
-    <StackPanel Margin="32" Spacing="20" MaxWidth="1000">
+  <ScrollViewer Background="#090A0D">
+    <StackPanel Margin="36" Spacing="20" MaxWidth="1360">
 
-      <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-        <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="34" Height="34"/>
-        <TextBlock Text="Calibration results" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center"/>
-      </StackPanel>
-
-      <TextBlock Text="{Binding DataQualityNote}"
-                 IsVisible="{Binding DataQualityNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                 Foreground="#FFB03A" TextWrapping="Wrap"/>
-
-      <!-- hero cm/360 metric card -->
-      <Border Background="#1C1F26" CornerRadius="12" Padding="24">
-        <StackPanel Spacing="4">
-          <TextBlock Text="RECOMMENDED" Opacity="0.6" FontSize="12" LetterSpacing="2"/>
-          <TextBlock Text="{Binding HeroText}" FontSize="56" FontWeight="Bold" Foreground="#00E5FF"/>
-          <TextBlock Text="{Binding BandText}" Opacity="0.7"/>
+      <!-- Header Row -->
+      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="32" Height="32"/>
+          <TextBlock Text="Calibration Results" FontSize="26" FontWeight="SemiBold"
+                     Foreground="#F4F6F8" VerticalAlignment="Center"/>
         </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Button Content="[ESC] Back to Menu" Command="{Binding BackToMenuCommand}" Padding="14,9"/>
+          <Button Content="Re-Calibrate" Command="{Binding RecalibrateCommand}" Classes="cta" Padding="16,9"/>
+        </StackPanel>
+      </Grid>
+
+      <Border IsVisible="{Binding DataQualityNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+              Background="#24FFB03A" BorderBrush="#66FFB03A" BorderThickness="1"
+              CornerRadius="6" Padding="12,8">
+        <TextBlock Text="{Binding DataQualityNote}" Foreground="#FFB03A" FontSize="12" TextWrapping="Wrap"/>
       </Border>
 
-      <!-- GP posterior plot -->
-      <Border Background="#1C1F26" CornerRadius="12" Padding="12">
-        <controls:GpPlotControl Height="360"
-                                GridPredictions="{Binding Curve}"
-                                Observations="{Binding Observations}"/>
-      </Border>
+      <!-- High-Density 2-Column Layout -->
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
 
-      <!-- kinematic breakdown table -->
-      <Border Background="#1C1F26" CornerRadius="12" Padding="16">
-        <ItemsControl ItemsSource="{Binding Rounds}">
-          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:RoundRow">
-            <Grid ColumnDefinitions="*,*,*,*,*" Margin="4">
-              <TextBlock Grid.Column="0" Text="{Binding ProbeText}"/>
-              <TextBlock Grid.Column="1" Text="{Binding BsiText}"/>
-              <TextBlock Grid.Column="2" Text="{Binding AccuracyText}"/>
-              <TextBlock Grid.Column="3" Text="{Binding JerkText}"/>
-              <TextBlock Grid.Column="4" Text="{Binding FlickText}"/>
-            </Grid>
-          </DataTemplate></ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </Border>
+        <!-- Left Column: Hero, Engine Projections, Coach Terminal -->
+        <StackPanel Grid.Column="0" Spacing="16">
 
-      <!-- projection copy cards -->
-      <ItemsControl ItemsSource="{Binding Projections}">
-        <ItemsControl.ItemsPanel><ItemsPanelTemplate>
-          <UniformGrid Columns="4"/>
-        </ItemsPanelTemplate></ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ProjectionCard">
-          <Border Background="#1C1F26" CornerRadius="10" Margin="6" Padding="16">
+          <!-- Hero cm/360 Card -->
+          <Border Background="#1C1F26" BorderBrush="#242832" BorderThickness="1"
+                  CornerRadius="8" Padding="24">
             <StackPanel Spacing="6">
-              <TextBlock Text="{Binding GameName}" Opacity="0.7"/>
-              <TextBlock Text="{Binding SensText}" FontSize="24" FontWeight="SemiBold"/>
-              <Button Content="Copy" Command="{Binding CopyCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+              <TextBlock Text="RECOMMENDED" FontSize="11" FontWeight="SemiBold"
+                         LetterSpacing="2" Foreground="#8E97A6"/>
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Bottom">
+                <TextBlock Text="{Binding HeroValueText}" Classes="tabular"
+                           FontSize="56" FontWeight="Bold" Foreground="#F4F6F8"/>
+                <TextBlock Text="cm/360" FontSize="22" FontWeight="SemiBold"
+                           Foreground="#00F0FF" Margin="0,0,0,10" VerticalAlignment="Bottom"/>
+              </StackPanel>
+              <TextBlock Text="{Binding BandText}" Classes="tabular"
+                         FontSize="13" Foreground="#8E97A6"/>
             </StackPanel>
           </Border>
-        </DataTemplate></ItemsControl.ItemTemplate>
-      </ItemsControl>
 
-      <!-- embedded coach terminal -->
-      <views:CoachTerminalView DataContext="{Binding Coach}" MinHeight="260"/>
+          <!-- Engine Projections (4-column UniformGrid) -->
+          <ItemsControl ItemsSource="{Binding Projections}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="4"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ProjectionCard">
+                <Border Background="#12151B" BorderBrush="#242832" BorderThickness="1"
+                        CornerRadius="8" Margin="0,0,8,0" Padding="14">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding GameName}" FontSize="11" Foreground="#8E97A6"/>
+                    <TextBlock Text="{Binding SensText}" Classes="tabular"
+                               FontSize="20" FontWeight="SemiBold" Foreground="#F4F6F8"/>
+                    <Button Content="Copy" Command="{Binding CopyCommand}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Padding="8,5" FontSize="11"/>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- Coach Terminal -->
+          <views:CoachTerminalView DataContext="{Binding Coach}" MinHeight="280"/>
+        </StackPanel>
+
+        <!-- Right Column: GP Posterior Plot + Kinematic Breakdown -->
+        <StackPanel Grid.Column="1" Spacing="16">
+          <Border Background="#1C1F26" BorderBrush="#242832" BorderThickness="1"
+                  CornerRadius="8" Padding="12">
+            <controls:GpPlotControl Height="340"
+                                    GridPredictions="{Binding Curve}"
+                                    Observations="{Binding Observations}"/>
+          </Border>
+
+          <Border Background="#12151B" BorderBrush="#242832" BorderThickness="1"
+                  CornerRadius="8" Padding="16">
+            <StackPanel Spacing="8">
+              <TextBlock Text="KINEMATIC BREAKDOWN" FontSize="11" FontWeight="SemiBold"
+                         LetterSpacing="1.6" Foreground="#8E97A6"/>
+              <ItemsControl ItemsSource="{Binding Rounds}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:RoundRow">
+                    <Grid ColumnDefinitions="60,*,*,*,*,*" Margin="0,4">
+                      <TextBlock Grid.Column="0" Text="{Binding RoundText}" Classes="tabular" FontSize="12" Foreground="#8E97A6"/>
+                      <TextBlock Grid.Column="1" Text="{Binding ProbeText}" Classes="tabular" FontSize="12" Foreground="#F4F6F8"/>
+                      <TextBlock Grid.Column="2" Text="{Binding BsiText}" Classes="tabular" FontSize="12" Foreground="#00F0FF"/>
+                      <TextBlock Grid.Column="3" Text="{Binding AccuracyText}" Classes="tabular" FontSize="12" Foreground="#F4F6F8"/>
+                      <TextBlock Grid.Column="4" Text="{Binding JerkText}" Classes="tabular" FontSize="12" Foreground="#8E97A6"/>
+                      <TextBlock Grid.Column="5" Text="{Binding FlickText}" Classes="tabular" FontSize="12" Foreground="#8E97A6"/>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

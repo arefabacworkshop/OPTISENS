@@ -4,33 +4,65 @@
              xmlns:vm="using:OPTISENS.App.ViewModels"
              x:DataType="vm:HardwareProfileViewModel"
              x:CompileBindings="True">
-  <StackPanel Margin="48" Spacing="14" MaxWidth="420" HorizontalAlignment="Left">
-    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" Margin="0,0,0,4">
-      <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="36" Height="36"/>
-      <TextBlock Text="OPTISENS" FontSize="14" FontWeight="Bold" LetterSpacing="2.0"
-                 VerticalAlignment="Center" Foreground="#9AB4FF"/>
-    </StackPanel>
-    <TextBlock Text="Hardware Profile" FontSize="28" FontWeight="SemiBold"/>
-    <TextBlock Text="OPTISENS measures your optimal cm/360 — physical turn distance. Enter your hardware exactly."
-               TextWrapping="Wrap" Opacity="0.7"/>
+  <Grid Background="#090A0D">
+    <Border Width="460"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="#12151B"
+            BorderBrush="#242832"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="32">
+      <StackPanel Spacing="16">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="36" Height="36"/>
+          <StackPanel VerticalAlignment="Center" Spacing="2">
+            <TextBlock Text="OPTISENS" FontSize="13" FontWeight="Bold" LetterSpacing="2.2" Foreground="#00F0FF"/>
+            <TextBlock Text="AI-Assisted Sensitivity Finder" FontSize="11" Foreground="#525A68"/>
+          </StackPanel>
+        </StackPanel>
 
-    <TextBlock Text="Mouse DPI"/>
-    <NumericUpDown Value="{Binding Dpi}" Minimum="100" Maximum="6400" Increment="50" FormatString="0"/>
+        <StackPanel Spacing="4">
+          <TextBlock Text="Hardware Profile" FontSize="26" FontWeight="SemiBold" Foreground="#F4F6F8"/>
+          <TextBlock Text="OPTISENS measures your optimal cm/360 — physical turn distance. Enter your hardware exactly."
+                     TextWrapping="Wrap" FontSize="13" Foreground="#8E97A6"/>
+        </StackPanel>
 
-    <TextBlock Text="Mousepad usable width (cm)"/>
-    <NumericUpDown Value="{Binding PadWidthCm}" Minimum="5" Maximum="120" Increment="1" FormatString="0.0"/>
+        <StackPanel Spacing="6">
+          <TextBlock Text="Mouse DPI" FontSize="12" Foreground="#8E97A6"/>
+          <NumericUpDown Value="{Binding Dpi}" Minimum="100" Maximum="6400" Increment="50" FormatString="0"/>
+        </StackPanel>
 
-    <TextBlock Text="Grip style"/>
-    <ComboBox ItemsSource="{Binding GripStyles}" SelectedItem="{Binding SelectedGrip}" HorizontalAlignment="Stretch"/>
+        <StackPanel Spacing="6">
+          <TextBlock Text="Mousepad usable width (cm)" FontSize="12" Foreground="#8E97A6"/>
+          <NumericUpDown Value="{Binding PadWidthCm}" Minimum="5" Maximum="120" Increment="1" FormatString="0.0"/>
+          <TextBlock Text="{Binding BoundsHintText}" Classes="tabular"
+                     FontFamily="Consolas,Menlo,monospace" FontSize="11" Foreground="#525A68"/>
+        </StackPanel>
 
-    <TextBlock Text="{Binding ValidationError}" Foreground="#FF6B6B" TextWrapping="Wrap"/>
+        <StackPanel Spacing="6">
+          <TextBlock Text="Grip style" FontSize="12" Foreground="#8E97A6"/>
+          <ComboBox ItemsSource="{Binding GripStyles}" SelectedItem="{Binding SelectedGrip}" HorizontalAlignment="Stretch"/>
+        </StackPanel>
 
-    <Button Content="Start calibration" Command="{Binding StartCalibrationCommand}"
-            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12"
-            Background="#7C9FFF" Foreground="#0E1116" FontWeight="SemiBold"/>
+        <TextBlock Text="{Binding ValidationError}"
+                   IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Foreground="#FF4B4B" FontSize="12" TextWrapping="Wrap"/>
 
-    <Button Content="Exit OPTISENS" Command="{Binding ExitAppCommand}"
-            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
-            Background="Transparent" BorderBrush="#26FFFFFF" BorderThickness="1" Foreground="#9AA3B2"/>
-  </StackPanel>
+        <Button Content="Start calibration"
+                Command="{Binding StartCalibrationCommand}"
+                Classes="cta"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Padding="12"/>
+
+        <Button Command="{Binding ExitAppCommand}"
+                Background="Transparent" BorderThickness="0"
+                HorizontalAlignment="Center" Padding="4,2">
+          <TextBlock Text="[ESC] Exit Application"
+                     FontFamily="Consolas,Menlo,monospace" FontSize="11" Foreground="#525A68"/>
+        </Button>
+      </StackPanel>
+    </Border>
+  </Grid>
 </UserControl>

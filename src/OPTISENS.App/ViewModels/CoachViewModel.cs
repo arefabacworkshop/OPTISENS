@@ -12,9 +12,13 @@ public sealed partial class ChatLine : ObservableObject
     [ObservableProperty] private string _text;
     public IBrush Brush { get; }
 
+    public static readonly IBrush UserBrush = new SolidColorBrush(Color.Parse("#8E97A6"));
+    public static readonly IBrush CoachBrush = new SolidColorBrush(Color.Parse("#F4F6F8"));
+    public static readonly IBrush ToolBrush = new SolidColorBrush(Color.Parse("#66B8C4"));
+
     public ChatLine(string prefix, string text, IBrush brush)
     {
-        _text = prefix.Length > 0 ? $"{prefix}: {text}" : text;
+        _text = prefix.Length > 0 ? $"{prefix}{text}" : text;
         Brush = brush;
     }
 }
@@ -69,7 +73,7 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
                 {
                     var args = string.Join(", ", call.Arguments.Select(a => a.Value));
                     Dispatcher.UIThread.Post(() =>
-                        Transcript.Add(new ChatLine("", $"⚙ {call.Name}({args})", Brushes.DarkGray)));
+                        Transcript.Add(new ChatLine("", $"⚙ {call.Name}({args})", ChatLine.ToolBrush)));
                 };
             });
 
@@ -105,10 +109,10 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
         if (_session is null) return;
         IsBusy = true;
         if (showUserLine)
-            Transcript.Add(new ChatLine("you", text, Brushes.Gray));
+            Transcript.Add(new ChatLine("> ", text, ChatLine.UserBrush));
 
-        var streamed = new System.Text.StringBuilder("coach: ");
-        var line = new ChatLine("", "coach: ", Brushes.Cyan);
+        var streamed = new System.Text.StringBuilder();
+        var line = new ChatLine("", "", ChatLine.CoachBrush);
         Transcript.Add(line);
         try
         {
@@ -120,7 +124,7 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
                     line.Text = streamed.ToString();
                 }),
                 CancellationToken.None);
-            line.Text = $"coach: {reply}";
+            line.Text = reply;
         }
         catch (Exception ex)
         {

@@ -21,6 +21,15 @@ public partial class HardwareProfileViewModel : ViewModelBase
     [ObservableProperty] private decimal _padWidthCm = (decimal)Constants.PadWidthDefaultCm;
     [ObservableProperty] private GripOption _selectedGrip;
     [ObservableProperty] private string? _validationError;
+    [ObservableProperty] private string _boundsHintText = FormatBounds((double)Constants.PadWidthDefaultCm);
+
+    partial void OnPadWidthCmChanged(decimal value) => BoundsHintText = FormatBounds((double)value);
+
+    private static string FormatBounds(double padWidthCm)
+    {
+        double hi = Math.Min(Constants.BoundsMaxCm360, Constants.PadTurnFraction * Math.Max(0, padWidthCm));
+        return $"Bounds: {Constants.BoundsMinCm360:F1} cm ↔ {hi:F1} cm";
+    }
 
     public IReadOnlyList<GripOption> GripStyles { get; } =
     [

@@ -1,0 +1,14 @@
+bin/
+obj/
+dist/
+models/
+AppDir/
+*.app/
+*.dmg
+*.deb
+*.AppImage
+TestResults/
+.vs/
+*.user
+*.suo
+*.log

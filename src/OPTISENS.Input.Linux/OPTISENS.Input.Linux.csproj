@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\OPTISENS.Core\OPTISENS.Core.csproj" />
+  </ItemGroup>
+</Project>

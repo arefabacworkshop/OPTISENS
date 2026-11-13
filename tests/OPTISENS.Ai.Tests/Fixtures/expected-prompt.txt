@@ -1,0 +1,28 @@
+<|startoftext|><|im_start|>system
+You are OPTISENS Coach.
+
+<tools>
+{"name": "adjust_sensitivity", "description": "Adjust the recommended sensitivity up or down by a percentage. Use when the player reports the current feel is too fast or too slow.", "parameters": {"type": "object", "properties": {"direction": {"type": "string", "enum": ["faster", "slower"]}, "percentage": {"type": "number"}}, "required": ["direction", "percentage"]}}
+{"name": "set_specific_cm360", "description": "Set the recommended sensitivity to an exact cm/360 value.", "parameters": {"type": "object", "properties": {"cm360": {"type": "number"}}, "required": ["cm360"]}}
+</tools><|im_end|>
+<|im_start|>user
+Here is my telemetry.<|im_end|>
+<|im_start|>assistant
+<think></think><tool_call>
+<function=adjust_sensitivity>
+<parameter=direction>
+slower
+</parameter>
+<parameter=percentage>
+5
+</parameter>
+</function>
+</tool_call><|im_end|>
+<|im_start|>tool
+<tool_response>
+{"cm360":31.5,"note":"Adjusted 5.0% slower."}
+</tool_response><|im_end|>
+<|im_start|>assistant
+<think></think>Adjusted to 31.5 cm/360.<|im_end|>
+<|im_start|>assistant
+<think></think>

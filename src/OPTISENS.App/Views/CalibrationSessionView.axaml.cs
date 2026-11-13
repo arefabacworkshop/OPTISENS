@@ -57,8 +57,13 @@ public partial class CalibrationSessionView : UserControl
         if (DataContext is not SessionViewModel vm) return;
         if (e.Key == Key.Escape)
         {
-            UnlockCursor();
-            vm.RequestAbortPrompt();
+            if (vm.ShowAbortConfirm)
+                vm.CancelAbortCommand.Execute(null);
+            else
+            {
+                UnlockCursor();
+                vm.RequestAbortPrompt();
+            }
             e.Handled = true;
         }
         else if (e.Key == Key.F12)

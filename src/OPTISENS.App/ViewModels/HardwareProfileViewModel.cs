@@ -1,3 +1,5 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OPTISENS.Core.Config;
@@ -46,5 +48,12 @@ public partial class HardwareProfileViewModel : ViewModelBase
             return;
         }
         ProfileReady?.Invoke(new HardwareProfile((double)Dpi, (double)PadWidthCm, SelectedGrip.Value));
+    }
+
+    [RelayCommand]
+    private static void ExitApp()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.Shutdown();
     }
 }

@@ -28,5 +28,9 @@
     <Button Content="Start calibration" Command="{Binding StartCalibrationCommand}"
             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12"
             Background="#7C9FFF" Foreground="#0E1116" FontWeight="SemiBold"/>
+
+    <Button Content="Exit OPTISENS" Command="{Binding ExitAppCommand}"
+            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
+            Background="Transparent" BorderBrush="#26FFFFFF" BorderThickness="1" Foreground="#9AA3B2"/>
   </StackPanel>
 </UserControl>

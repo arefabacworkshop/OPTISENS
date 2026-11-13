@@ -46,16 +46,23 @@
       </StackPanel>
     </Border>
 
-    <!-- Esc abort confirmation -->
+    <!-- Esc pause & navigation menu -->
     <Border IsVisible="{Binding ShowAbortConfirm}" Background="#CC0E1116">
-      <Border Background="#1C1F26" CornerRadius="10" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="360">
-        <StackPanel Spacing="14">
-          <TextBlock Text="Abort calibration?" FontSize="18" FontWeight="SemiBold"/>
-          <TextBlock Text="Abort and view results from completed rounds?" TextWrapping="Wrap" Opacity="0.8"/>
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-            <Button Grid.Column="0" Content="Continue" Command="{Binding CancelAbortCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-            <Button Grid.Column="1" Content="Abort &amp; View" Command="{Binding ConfirmAbortCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#C94A4A"/>
-          </Grid>
+      <Border Background="#1C1F26" BorderBrush="#26FFFFFF" BorderThickness="1"
+              CornerRadius="14" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="320" MaxWidth="380">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Calibration Paused" FontSize="20" FontWeight="SemiBold"/>
+          <TextBlock Text="Press Esc or Resume to continue, or return to the menu." TextWrapping="Wrap" Opacity="0.75" FontSize="13"/>
+          <Button Content="Resume" Command="{Binding CancelAbortCommand}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
+                  Background="#7C9FFF" Foreground="#0E1116" FontWeight="SemiBold" CornerRadius="8"/>
+          <Button Content="Main Menu" Command="{Binding ReturnToMenuCommand}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10" CornerRadius="8"/>
+          <Button Content="Abort &amp; View Results" Command="{Binding ConfirmAbortCommand}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10" CornerRadius="8"/>
+          <Button Content="Exit OPTISENS" Command="{Binding ExitAppCommand}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
+                  Background="#C94A4A" Foreground="#FFFFFF" FontWeight="Medium" CornerRadius="8"/>
         </StackPanel>
       </Border>
     </Border>

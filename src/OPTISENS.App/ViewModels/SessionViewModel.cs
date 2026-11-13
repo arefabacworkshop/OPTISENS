@@ -31,6 +31,8 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
 
     public event Action? RequestCursorLock;
     public event Action? RequestCursorUnlock;
+    public event Action? ReturnToMenuRequested;
+    public event Action? ExitRequested;
     public event Action<OptimizationReport, IReadOnlyList<RoundScore>, IReadOnlyList<RoundInvalidReason>, bool>? SessionFinished;
 
     public SessionViewModel(IRawInputService input, HardwareProfile profile, bool devEnabled)
@@ -76,13 +78,37 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     public void RequestAbortPrompt() => ShowAbortConfirm = true;
 
     [RelayCommand]
-    private void CancelAbort() => ShowAbortConfirm = false;
+    private void CancelAbort()
+    {
+        ShowAbortConfirm = false;
+        RequestCursorLock?.Invoke();
+    }
 
     [RelayCommand]
     private void ConfirmAbort()
     {
         ShowAbortConfirm = false;
         _controller.Abort(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+        if (_controller.FinalReport is null)
+            ReturnToMenu();
+    }
+
+    [RelayCommand]
+    private void ReturnToMenu()
+    {
+        ShowAbortConfirm = false;
+        _cts.Cancel();
+        RequestCursorUnlock?.Invoke();
+        ReturnToMenuRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    private void ExitApp()
+    {
+        ShowAbortConfirm = false;
+        _cts.Cancel();
+        RequestCursorUnlock?.Invoke();
+        ExitRequested?.Invoke();
     }
 
     private void EngineLoop()

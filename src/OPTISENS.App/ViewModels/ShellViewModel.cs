@@ -1,3 +1,5 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OPTISENS.Core.Coaching;
 using OPTISENS.Core.Config;
@@ -84,8 +86,21 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         };
 
         _activeSession = sessionVm;
+        sessionVm.ReturnToMenuRequested += () =>
+        {
+            _activeSession?.Dispose();
+            _activeSession = null;
+            CurrentPage = CreateHardwareProfileVm();
+        };
+        sessionVm.ExitRequested += ShutdownApp;
         CurrentPage = sessionVm;
         sessionVm.StartEngine();
+    }
+
+    private static void ShutdownApp()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.Shutdown();
     }
 
     public void Dispose()

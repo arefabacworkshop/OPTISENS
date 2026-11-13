@@ -66,7 +66,7 @@ echo "This will build, install, and launch OPTISENS."
 # 1. Check .NET SDK
 step "1/4 Checking .NET SDK"
 if ! command -v dotnet >/dev/null 2>&1; then
-  echo "ERROR: .NET SDK (9.0+) is required. Install from https://dot.net/download" >&2
+  echo "ERROR: .NET SDK (10.0+) is required. Install from https://dot.net/download" >&2
   exit 1
 fi
 info "Found dotnet $(dotnet --version)"

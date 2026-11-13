@@ -40,7 +40,7 @@ bash scripts/install.sh
 ```
 
 This script:
-1. Checks for the `.NET 9+` SDK.
+1. Checks for the `.NET 10+` SDK.
 2. Publishes a self-contained single-file `OPTISENS.App` binary (`linux-x64` or `linux-arm64`).
 3. Installs to `~/.local/opt/optisens`, links `~/.local/bin/optisens`, and registers the desktop entry + icon.
 4. Optionally installs the `udev` raw-input rule (`packaging/linux/install-udev.sh`) and launches OPTISENS.

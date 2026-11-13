@@ -4,7 +4,7 @@
   <p><strong>AI-assisted open-source sensitivity finder</strong></p>
 
   <p>
-    <img src="https://img.shields.io/badge/.NET-9.0-512BD4?style=flat-square&logo=dotnet" alt=".NET 9" />
+    <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet" alt=".NET 10" />
     <img src="https://img.shields.io/badge/UI-Avalonia%2011-8B5CF6?style=flat-square" alt="Avalonia 11" />
     <img src="https://img.shields.io/badge/Renderer-OpenGL%203.3-5586A4?style=flat-square&logo=opengl" alt="OpenGL 3.3" />
     <img src="https://img.shields.io/badge/AI%20Coach-LFM3--1.7B%20ONNX-00E5FF?style=flat-square" alt="LFM3-1.7B ONNX" />
@@ -72,7 +72,7 @@ The interactive terminal installer publishes `OPTISENS.App`, installs the applic
 
 ### 1. Build & Test from Source
 
-Requires the **.NET 9 SDK** (or newer with `rollForward` configured in [global.json](global.json)).
+Requires the **.NET 10 SDK** (or newer with `rollForward` configured in [global.json](global.json)).
 
 ```bash
 dotnet build OPTISENS.sln

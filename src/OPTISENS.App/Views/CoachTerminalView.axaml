@@ -13,7 +13,7 @@
 
       <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
         <TextBox Grid.Column="0" Text="{Binding InputText}"
-                 Watermark="Ask the coach… e.g. &quot;make it 5% slower&quot;"/>
+                 PlaceholderText="Ask the coach… e.g. &quot;make it 5% slower&quot;"/>
         <Button Grid.Column="1" Content="Send" Command="{Binding SendCommand}" Margin="8,0,0,0"/>
       </Grid>
 

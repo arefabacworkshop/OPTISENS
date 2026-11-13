@@ -28,8 +28,12 @@
           <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
             <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="52" Height="52"/>
             <StackPanel VerticalAlignment="Center" Spacing="4">
-              <TextBlock Text="OPTISENS" FontSize="15" FontWeight="Bold"
-                         LetterSpacing="2.2" Foreground="#F2F5FA"/>
+              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock Text="OPTISENS" FontSize="15" FontWeight="Bold"
+                           LetterSpacing="2.2" Foreground="#F2F5FA"/>
+                <TextBlock Text="{Binding AppVersion}" FontSize="12" FontWeight="Medium"
+                           VerticalAlignment="Center" Foreground="#7C9FFF"/>
+              </StackPanel>
               <Border Background="#1E7C9FFF" CornerRadius="999" Padding="9,3" HorizontalAlignment="Left">
                 <TextBlock Text="FIRST-RUN SETUP" FontSize="10" FontWeight="SemiBold"
                            LetterSpacing="1.4" Foreground="#9AB4FF"/>

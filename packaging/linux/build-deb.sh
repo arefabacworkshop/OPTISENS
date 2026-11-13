@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION=${1:-0.1.0}
+VERSION=${1:-0.5.1}
 ARCH=amd64
 PKG_DIR="dist/deb/optisens_${VERSION}_${ARCH}"
 

@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $colors = @("Cyan", "Blue", "Magenta", "DarkCyan")
 $lines = @(
     "   +===+   OPTISENS  |  AI Coach Asset Fetcher",
-    "  -| @ |-  Precision Sensitivity & Kinematic Calibration",
+    "  -| @ |-  AI-Assisted Open-Source Sensitivity Finder",
     "   +===+   ---------------------------------------------"
 )
 for ($f = 0; $f -lt 4; $f++) {

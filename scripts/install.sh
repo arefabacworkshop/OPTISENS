@@ -43,7 +43,7 @@ print_logo() {
     printf "${c4}    ╚═══╝   ${c6}╚██████╔╝██║        ██║   ██║███████║███████╗██║ ╚████║███████║\n"
     printf "${c5}            ${c6} ╚═════╝ ╚═╝        ╚═╝   ╚═╝╚══════╝╚══════╝╚═╝  ╚═══╝╚══════╝\n"
     printf "\033[0m"
-    printf "  ${DIM}Precision Sensitivity & Kinematic Calibration Suite${RESET}\n"
+    printf "  ${DIM}AI-Assisted Open-Source Sensitivity Finder${RESET}\n"
     printf "  ${c3}──────────────────────────────────────────────────────────────────────────${RESET}\n\n"
 
     [ "$f" -lt $((frames - 1)) ] && sleep 0.12

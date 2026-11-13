@@ -1,6 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=OPTISENS
+Comment=AI-assisted open-source sensitivity finder
 Exec=OPTISENS.App
 Icon=optisens
 Categories=Utility;Game;

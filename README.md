@@ -1,6 +1,8 @@
-# Project OPTISENS
+# OPTISENS
 
-Biomechanical aiming-sensitivity calibration desktop application (cm/360 invariant) using raw OS mouse input, Silk.NET OpenGL 3.3 scenarios, Gaussian-process Bayesian optimization (Matérn 5/2 + Expected Improvement), and an embedded LFM3-1.7B ONNX AI coach.
+**AI-assisted open-source sensitivity finder.**
+
+OPTISENS measures your optimal physical turn distance (`cm/360` invariant) using raw OS mouse input, Silk.NET OpenGL 3.3 scenarios, Gaussian-process Bayesian optimization (Matérn 5/2 + Expected Improvement), and an embedded LFM3-1.7B ONNX AI coach.
 
 ## Build & Test
 

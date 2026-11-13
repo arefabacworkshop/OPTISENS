@@ -33,7 +33,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: OPTISENS
-Description: Biomechanical aiming-sensitivity calibration & embedded AI coach
+Description: AI-assisted open-source sensitivity finder
 EOF
 
 cat > "$PKG_DIR/DEBIAN/postinst" <<'EOF'

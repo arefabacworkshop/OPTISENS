@@ -4,7 +4,7 @@
         x:Class="OPTISENS.App.Views.ShellView"
         x:DataType="vm:ShellViewModel"
         x:CompileBindings="True"
-        Title="OPTISENS — Sensitivity Calibration"
+        Title="OPTISENS — AI-Assisted Sensitivity Finder"
         Icon="avares://OPTISENS.App/Assets/icon.png"
         Width="1280" Height="800"
         MinWidth="960" MinHeight="640"

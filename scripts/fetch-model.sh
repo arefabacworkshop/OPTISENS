@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ -t 1 ]; then
+  palette=(51 45 39 75 105 141 75 39)
+  printf '\033[?25l'
+  trap 'printf "\033[?25h"' EXIT
+  for ((f = 0; f < 6; f++)); do
+    c1="\033[38;5;${palette[$(((f + 0) % 8))]}m"
+    c2="\033[38;5;${palette[$(((f + 2) % 8))]}m"
+    c3="\033[38;5;${palette[$(((f + 4) % 8))]}m"
+    [ "$f" -gt 0 ] && printf '\033[7A'
+    printf "${c1}   ╔═══╗  ${c2} ██████╗ ██████╗ ████████╗██╗███████╗███████╗███╗   ██╗███████╗\n"
+    printf "${c1}  ─╣ ◎ ├─ ${c2}██╔═══██╗██╔══██╗╚══██╔══╝██║██╔════╝██╔════╝████╗  ██║██╔════╝\n"
+    printf "${c2}   ╚═══╝  ${c3}██║   ██║██████╔╝   ██║   ██║███████╗█████╗  ██╔██╗ ██║███████╗\n"
+    printf "${c2}          ${c3}██║   ██║██╔═══╝    ██║   ██║╚════██║██╔══╝  ██║╚██╗██║╚════██║\n"
+    printf "${c3}          ${c1}╚██████╔╝██║        ██║   ██║███████║███████╗██║ ╚████║███████║\n"
+    printf "\033[0m          \033[2mAI Coach Asset Fetcher\033[0m\n\n"
+    [ "$f" -lt 5 ] && sleep 0.1
+  done
+  printf '\033[?25h'
+  trap - EXIT
+fi
+
 DEST=${1:-models/LFM3-1.7B-ONNX}
 mkdir -p "$DEST/onnx"
 BASE="https://huggingface.co/LiquidAI/LFM3-1.7B-ONNX/resolve/main"

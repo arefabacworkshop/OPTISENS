@@ -17,9 +17,49 @@ ok()   { echo -e "  ${GREEN}✓${RESET} $1"; }
 info() { echo -e "  ${DIM}$1${RESET}"; }
 warn() { echo -e "  ${YELLOW}!${RESET} $1"; }
 
+print_logo() {
+  local palette=(51 45 39 75 105 141 75 39)
+  local frames=1
+  if [ -t 1 ]; then
+    frames=8
+    printf '\033[?25l'
+    trap 'printf "\033[?25h"' EXIT
+  fi
+
+  local f c1 c2 c3 c4 c5 c6
+  for ((f = 0; f < frames; f++)); do
+    c1="\033[38;5;${palette[$(((f + 0) % 8))]}m"
+    c2="\033[38;5;${palette[$(((f + 1) % 8))]}m"
+    c3="\033[38;5;${palette[$(((f + 2) % 8))]}m"
+    c4="\033[38;5;${palette[$(((f + 3) % 8))]}m"
+    c5="\033[38;5;${palette[$(((f + 4) % 8))]}m"
+    c6="\033[38;5;${palette[$(((f + 5) % 8))]}m"
+
+    [ "$f" -gt 0 ] && printf '\033[9A'
+    printf "${c1}    ╔═══╗   ${c2} ██████╗ ██████╗ ████████╗██╗███████╗███████╗███╗   ██╗███████╗\n"
+    printf "${c1}   ╔╝ ┼ ╚╗  ${c3}██╔═══██╗██╔══██╗╚══██╔══╝██║██╔════╝██╔════╝████╗  ██║██╔════╝\n"
+    printf "${c2}  ─╣  ◎  ├─ ${c4}██║   ██║██████╔╝   ██║   ██║███████╗█████╗  ██╔██╗ ██║███████╗\n"
+    printf "${c3}   ╚╗ ┼ ╔╝  ${c5}██║   ██║██╔═══╝    ██║   ██║╚════██║██╔══╝  ██║╚██╗██║╚════██║\n"
+    printf "${c4}    ╚═══╝   ${c6}╚██████╔╝██║        ██║   ██║███████║███████╗██║ ╚████║███████║\n"
+    printf "${c5}            ${c6} ╚═════╝ ╚═╝        ╚═╝   ╚═╝╚══════╝╚══════╝╚═╝  ╚═══╝╚══════╝\n"
+    printf "\033[0m"
+    printf "  ${DIM}Precision Sensitivity & Kinematic Calibration Suite${RESET}\n"
+    printf "  ${c3}──────────────────────────────────────────────────────────────────────────${RESET}\n\n"
+
+    [ "$f" -lt $((frames - 1)) ] && sleep 0.12
+  done
+
+  if [ -t 1 ]; then
+    printf '\033[?25h'
+    trap - EXIT
+  fi
+}
+
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 
+clear 2>/dev/null || true
+print_logo
 echo -e "${BOLD}OPTISENS Installer${RESET} (${OS} / ${ARCH})"
 echo "This will build, install, and launch OPTISENS."
 

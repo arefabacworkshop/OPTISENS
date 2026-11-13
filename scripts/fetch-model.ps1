@@ -3,6 +3,23 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+$colors = @("Cyan", "Blue", "Magenta", "DarkCyan")
+$lines = @(
+    "   +===+   OPTISENS  |  AI Coach Asset Fetcher",
+    "  -| @ |-  Precision Sensitivity & Kinematic Calibration",
+    "   +===+   ---------------------------------------------"
+)
+for ($f = 0; $f -lt 4; $f++) {
+    if ($f -gt 0 -and -not [Console]::IsOutputRedirected) {
+        [Console]::SetCursorPosition(0, [Math]::Max(0, [Console]::CursorTop - $lines.Count))
+    }
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        Write-Host $lines[$i] -ForegroundColor $colors[($f + $i) % $colors.Count]
+    }
+    if (-not [Console]::IsOutputRedirected -and $f -lt 3) { Start-Sleep -Milliseconds 120 }
+}
+
 New-Item -ItemType Directory -Force -Path "$Dest/onnx" | Out-Null
 $Base = "https://huggingface.co/LiquidAI/LFM3-1.7B-ONNX/resolve/main"
 

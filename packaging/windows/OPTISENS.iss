@@ -14,6 +14,8 @@ OutputBaseFilename=OPTISENSSetup-{#MyAppVersion}-win-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\..\src\OPTISENS.App\Assets\icon.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"

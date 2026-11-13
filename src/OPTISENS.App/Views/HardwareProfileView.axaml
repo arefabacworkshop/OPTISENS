@@ -21,7 +21,7 @@
     <NumericUpDown Value="{Binding PadWidthCm}" Minimum="5" Maximum="120" Increment="1" FormatString="0.0"/>
 
     <TextBlock Text="Grip style"/>
-    <ComboBox ItemsSource="{Binding GripStyles}" SelectedItem="{Binding Grip}" HorizontalAlignment="Stretch"/>
+    <ComboBox ItemsSource="{Binding GripStyles}" SelectedItem="{Binding SelectedGrip}" HorizontalAlignment="Stretch"/>
 
     <TextBlock Text="{Binding ValidationError}" Foreground="#FF6B6B" TextWrapping="Wrap"/>
 

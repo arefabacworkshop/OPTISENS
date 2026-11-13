@@ -22,7 +22,7 @@ Before calibration begins, enter your physical setup accurately:
 
 - **Mouse DPI** (`100` – `6400`): Your mouse sensor's active DPI setting. OPTISENS uses this to convert raw hardware counts into physical centimeters.
 - **Mousepad Usable Width (cm)** (`5` – `120`): The horizontal space you comfortably sweep across. OPTISENS bounds the search range to `[10.0, min(60.0, 2 × padWidthCm)]` cm/360 so you never get an unplayable sensitivity.
-- **Grip Style**: Choose your grip (`Palm`, `Claw`, `Fingertip`, or `Hybrid`) so the AI Coach can contextualize micro-adjustment vs. arm-sweep feedback.
+- **Grip Style**: Choose your grip (`Palm Grip`, `Claw Grip`, or `Fingertip Grip`) so the AI Coach can contextualize micro-adjustment vs. arm-sweep feedback.
 
 Click **Start calibration** when ready.
 

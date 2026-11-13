@@ -4,7 +4,12 @@ using OPTISENS.Core.Config;
 
 namespace OPTISENS.App.ViewModels;
 
-public enum GripStyle { Wrist, Claw, Arm }
+public enum GripStyle { Palm, Claw, Fingertip }
+
+public sealed record GripOption(GripStyle Value, string Label)
+{
+    public override string ToString() => Label;
+}
 
 public readonly record struct HardwareProfile(double Dpi, double PadWidthCm, GripStyle Grip);
 
@@ -12,10 +17,17 @@ public partial class HardwareProfileViewModel : ViewModelBase
 {
     [ObservableProperty] private decimal _dpi = Constants.DpiDefault;
     [ObservableProperty] private decimal _padWidthCm = (decimal)Constants.PadWidthDefaultCm;
-    [ObservableProperty] private GripStyle _grip = GripStyle.Arm;
+    [ObservableProperty] private GripOption _selectedGrip;
     [ObservableProperty] private string? _validationError;
 
-    public IReadOnlyList<GripStyle> GripStyles { get; } = Enum.GetValues<GripStyle>();
+    public IReadOnlyList<GripOption> GripStyles { get; } =
+    [
+        new(GripStyle.Palm, "Palm Grip"),
+        new(GripStyle.Claw, "Claw Grip"),
+        new(GripStyle.Fingertip, "Fingertip Grip"),
+    ];
+
+    public HardwareProfileViewModel() => _selectedGrip = GripStyles[0];
 
     public event Action<HardwareProfile>? ProfileReady;
 
@@ -33,6 +45,6 @@ public partial class HardwareProfileViewModel : ViewModelBase
             ValidationError = $"Mousepad width must be at least {Constants.PadWidthMinCm} cm.";
             return;
         }
-        ProfileReady?.Invoke(new HardwareProfile((double)Dpi, (double)PadWidthCm, Grip));
+        ProfileReady?.Invoke(new HardwareProfile((double)Dpi, (double)PadWidthCm, SelectedGrip.Value));
     }
 }

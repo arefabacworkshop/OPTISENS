@@ -15,7 +15,7 @@ public static partial class CoachOutputSanitizer
     [GeneratedRegex(@"<tool_call>.*?(?:</tool_call>|$)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex ToolCallBlockRegex();
 
-    [GeneratedRegex(@"</?(?:tool_call|think|function(?:=[^>\n]*)?|parameter(?:=[^>\n]*)?|tool_response|tools)\s*>", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"</?(?:tool_call|think|answer|function(?:=[^>\n]*)?|parameter(?:=[^>\n]*)?|tool_response|tools)\s*>", RegexOptions.IgnoreCase)]
     private static partial Regex StrayTagRegex();
 
     [GeneratedRegex(@"\n{3,}")]

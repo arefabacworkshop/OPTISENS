@@ -28,7 +28,7 @@ public partial class SetupViewModel : ViewModelBase
     public string AppVersion { get; } =
         "v" + (typeof(SetupViewModel).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion.Split('+')[0] ?? "0.5.4");
+            .InformationalVersion.Split('+')[0] ?? "0.5.5");
 
     private readonly AssetBootstrapper _bootstrapper = new();
     private CancellationTokenSource? _cts;

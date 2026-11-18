@@ -59,7 +59,7 @@
                   <Slider Value="{Binding ActiveCm360}" Minimum="{Binding MinCm360}" Maximum="{Binding MaxCm360}"
                           TickFrequency="0.1" IsSnapToTickEnabled="False"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="2" Width="110">
+                <StackPanel Grid.Column="1" Spacing="2" Width="136">
                   <TextBlock Text="DPI" FontSize="11" Foreground="#8E97A6"/>
                   <NumericUpDown Value="{Binding EditableDpi}" Minimum="100" Maximum="6400" Increment="50" FormatString="0"/>
                 </StackPanel>

@@ -10,7 +10,7 @@ public static partial class ToolCallParser
     [GeneratedRegex(@"\u003cfunction=([^\u003e\n]+)\u003e\s*(.*?)\s*\u003c/function\u003e", RegexOptions.Singleline)]
     private static partial Regex FunctionRegex();
 
-    [GeneratedRegex(@"\u003cparameter=([^\u003e\n]+)\u003e\n(.*?)\n\u003c/parameter\u003e", RegexOptions.Singleline)]
+    [GeneratedRegex(@"\u003cparameter=([^\u003e\n]+)\u003e\s*(.*?)\s*\u003c/parameter\u003e", RegexOptions.Singleline)]
     private static partial Regex ParameterRegex();
 
     public static ToolCallRecord[] Parse(string assistantText)

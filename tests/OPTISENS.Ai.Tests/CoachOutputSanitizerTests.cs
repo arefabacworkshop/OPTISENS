@@ -10,7 +10,7 @@ public class CoachOutputSanitizerTests
     {
         const string raw =
             "<think>internal reasoning</think>\n" +
-            "Your **recommended** sensitivity is `34.5` cm/360.\n" +
+            "<answer>Your **recommended** sensitivity is `34.5` cm/360.</answer>\n" +
             "<tool_call>\n<function=adjust_sensitivity>\n<parameter=direction>\nslower\n</parameter>\n</function>\n</tool_call>\n" +
             "</parameter>";
 

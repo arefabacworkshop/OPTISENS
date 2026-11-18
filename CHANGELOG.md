@@ -2,6 +2,18 @@
 
 All notable changes to **OPTISENS** are documented in this file.
 
+## [0.5.5] - 2026-11-19
+
+### Added
+- **Agent Automation (`AGENTS.md`):** Documented automatic `+0.0.1` patch versioning, `CHANGELOG.md` updates, and build/test verification rules.
+
+### Fixed
+- **AI Coach Tool Execution & `<answer>` Tag Stripping:**
+  - Updated `SystemPrompt.txt` with explicit `<tool_call>` examples so sensitivity adjustments actually invoke `adjust_sensitivity` / `set_specific_cm360` instead of only claiming to apply them.
+  - Relaxed `ToolCallParser.ParameterRegex` to match both single-line and multi-line `<parameter=...>` tags.
+  - Added `<answer>` / `</answer>` to `CoachOutputSanitizer.StrayTagRegex`.
+- **Results Dashboard DPI Input:** Widened the `DPI` `NumericUpDown` from `110px` to `136px` in `ResultsDashboardView.axaml` to prevent digit clipping.
+
 ## [0.5.4] - 2026-11-19
 
 ### Fixed

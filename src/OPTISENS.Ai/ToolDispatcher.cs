@@ -42,12 +42,22 @@ public sealed class ToolDispatcher
         _boundsHi = boundsHiCm360;
     }
 
+    public static bool IsKnownTool(string name)
+        => NormalizeToolName(name) is "adjust_sensitivity" or "set_specific_cm360";
+
+    private static string NormalizeToolName(string name) => name.Trim().ToLowerInvariant() switch
+    {
+        "adjust_sensitivity" or "adjust-sensitivity" or "adjust_sensibility" or "adjust-sensibility" => "adjust_sensitivity",
+        "set_specific_cm360" or "set-specific-cm360" or "set_cm360" or "set_sensitivity" => "set_specific_cm360",
+        var other => other
+    };
+
     public string Execute(ToolCallRecord call)
     {
         double next = CurrentCm360;
         string note;
 
-        switch (call.Name)
+        switch (NormalizeToolName(call.Name))
         {
             case "adjust_sensitivity":
             {

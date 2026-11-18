@@ -50,32 +50,59 @@ public sealed class CoachSession
         for (int trip = 0; trip < Constants.MaxToolRoundTrips; trip++)
         {
             var prompt = Lfm3ChatTemplate.Render(_history, _systemPrompt, _toolSchemas);
+            var filter = new CoachOutputSanitizer.StreamingFilter();
             var res = await Task.Run(
-                () => _engine.Generate(prompt, Constants.AiMaxNewTokens, SamplingConfig.Default, onToken, ct),
+                () => _engine.Generate(prompt, Constants.AiMaxNewTokens, SamplingConfig.Default, delta =>
+                {
+                    string clean = filter.Push(delta);
+                    if (clean.Length > 0)
+                        onToken(clean);
+                }, ct),
                 ct);
+
+            string tail = filter.Flush();
+            if (tail.Length > 0)
+                onToken(tail);
+
             var calls = ToolCallParser.Parse(res.Text);
-            if (calls.Length == 0)
+            var validCalls = calls.Where(c => ToolDispatcher.IsKnownTool(c.Name)).ToArray();
+            string cleanProse = CoachOutputSanitizer.SanitizeFinal(res.Text);
+
+            if (validCalls.Length == 0)
             {
-                AddMessage(new ChatMessage("assistant", res.Text));
-                return res.Text;
+                AddMessage(new ChatMessage("assistant", cleanProse));
+                return cleanProse;
             }
-            AddMessage(new ChatMessage("assistant", res.Text, calls));
-            foreach (var call in calls)
+
+            AddMessage(new ChatMessage("assistant", cleanProse, validCalls));
+            foreach (var call in validCalls)
             {
                 ToolCallObserved?.Invoke(call);
                 AddMessage(new ChatMessage("tool", _dispatcher.Execute(call)));
             }
         }
+
+        var finalFilter = new CoachOutputSanitizer.StreamingFilter();
         var final = await Task.Run(
             () => _engine.Generate(
                 Lfm3ChatTemplate.Render(_history, _systemPrompt, _toolSchemas),
                 Constants.AiMaxNewTokens,
                 SamplingConfig.Default,
-                onToken,
+                delta =>
+                {
+                    string clean = finalFilter.Push(delta);
+                    if (clean.Length > 0)
+                        onToken(clean);
+                },
                 ct),
             ct);
-        AddMessage(new ChatMessage("assistant", final.Text));
-        return final.Text;
+        string finalTail = finalFilter.Flush();
+        if (finalTail.Length > 0)
+            onToken(finalTail);
+
+        string finalClean = CoachOutputSanitizer.SanitizeFinal(final.Text);
+        AddMessage(new ChatMessage("assistant", finalClean));
+        return finalClean;
     }
 
     private void AddMessage(ChatMessage message)
@@ -92,24 +119,20 @@ public sealed class CoachSession
     {
         while (_history.Count > MaxHistoryMessages)
         {
-            // Start of the oldest follow-up turn (first "user" after the initial exchange)
             int cut = 1;
             while (cut < _history.Count && _history[cut].Role != "user")
                 cut++;
             if (cut >= _history.Count)
             {
-                // Pathological: a single turn exceeds the cap — keep head + tail
                 _history.RemoveRange(2, _history.Count - MaxHistoryMessages);
                 break;
             }
 
-            // End of that turn = start of the next "user"
             int end = cut + 1;
             while (end < _history.Count && _history[end].Role != "user")
                 end++;
             if (end >= _history.Count)
             {
-                // The latest turn alone exceeds the cap — drop its oldest messages
                 _history.RemoveRange(cut, _history.Count - MaxHistoryMessages);
                 break;
             }

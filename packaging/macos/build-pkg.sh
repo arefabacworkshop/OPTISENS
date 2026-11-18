@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION=${1:-0.5.3}
+VERSION=${1:-0.5.4}
 RID=${2:-osx-arm64}
 
 # Reuse build-dmg.sh publish + OPTISENS.app bundle creation

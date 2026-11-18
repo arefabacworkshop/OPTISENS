@@ -454,6 +454,12 @@ public sealed class Lfm3Engine : IDisposable
             generated.Add(next);
             allIds.Add(next);
 
+            if (DetectRepeatLoop(generated, out int trimCount))
+            {
+                generated.RemoveRange(generated.Count - trimCount, trimCount);
+                return Finish(generated, false);
+            }
+
             if (streamDecoder is not null && onToken is not null)
             {
                 string delta = streamDecoder.Append(next);
@@ -463,6 +469,33 @@ public sealed class Lfm3Engine : IDisposable
         }
 
         return Finish(generated, false);
+    }
+
+    private static bool DetectRepeatLoop(List<int> generated, out int trimCount)
+    {
+        trimCount = 0;
+        // If an n-gram of length 2..8 repeats 4 times consecutively at the tail, break out.
+        for (int n = 2; n <= 8; n++)
+        {
+            int needed = n * 4;
+            if (generated.Count < needed) continue;
+            int start = generated.Count - needed;
+            bool match = true;
+            for (int i = 0; i < n * 3; i++)
+            {
+                if (generated[start + n + i] != generated[start + (i % n)])
+                {
+                    match = false;
+                    break;
+                }
+            }
+            if (match)
+            {
+                trimCount = n * 3;
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>

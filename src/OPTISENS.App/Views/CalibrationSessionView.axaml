@@ -45,8 +45,8 @@
             VerticalAlignment="Top" HorizontalAlignment="Left" Margin="16"
             Background="#D912151B" BorderBrush="#242832" BorderThickness="1"
             CornerRadius="4" Padding="12,8" IsHitTestVisible="False">
-      <TextBlock Text="{Binding DevOverlayText}" Classes="tabular"
-                 FontFamily="Consolas,Menlo,monospace" FontSize="12" Foreground="#00F0FF"/>
+      <TextBlock Text="{Binding DevOverlayText}" Classes="mono-tabular"
+                 FontSize="12" Foreground="#00F0FF"/>
     </Border>
 
     <!-- Streak badge (top right) -->
@@ -120,7 +120,7 @@
           <TextBlock Grid.Column="0" Text="{Binding LiveStatus}" Classes="tabular"
                      Foreground="#8E97A6" FontSize="12"/>
           <TextBlock Grid.Column="1" Text="[SPACE] Skip Rest · [ESC] Pause"
-                     FontFamily="Consolas,Menlo,monospace" FontSize="11" Foreground="#525A68"
+                     Classes="mono-tabular" FontSize="11" Foreground="#525A68"
                      VerticalAlignment="Center"/>
         </Grid>
       </StackPanel>

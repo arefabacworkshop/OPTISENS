@@ -4,7 +4,7 @@
   <p><strong>AI-assisted open-source sensitivity finder</strong></p>
 
   <p>
-    <img src="https://img.shields.io/badge/Version-0.5.3-00E5FF?style=flat-square" alt="Version 0.5.3" />
+    <img src="https://img.shields.io/badge/Version-0.5.4-00E5FF?style=flat-square" alt="Version 0.5.4" />
     <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet" alt=".NET 10" />
     <img src="https://img.shields.io/badge/UI-Avalonia%2011-8B5CF6?style=flat-square" alt="Avalonia 11" />
     <img src="https://img.shields.io/badge/Renderer-OpenGL%203.3-5586A4?style=flat-square&logo=opengl" alt="OpenGL 3.3" />
@@ -49,7 +49,7 @@ Instead of guessing numbers or copying pro settings, OPTISENS measures how smoot
 
 ### Windows (`.exe` Setup Wizard)
 
-Build or run the Inno Setup installer (`OPTISENSSetup-0.5.3-win-x64.exe`):
+Build or run the Inno Setup installer (`OPTISENSSetup-0.5.4-win-x64.exe`):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File packaging/windows/build-setup.ps1

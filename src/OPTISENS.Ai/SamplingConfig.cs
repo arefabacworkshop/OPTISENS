@@ -29,13 +29,14 @@ public static class Sampler
             Span<float> work = rented.AsSpan(0, vocab);
             logits.CopyTo(work);
 
-            // (a) repetition penalty over allIds
-            if (Math.Abs(cfg.RepetitionPenalty - 1.0) > 1e-6)
+            // (a) repetition penalty over recent generated tokens only (never penalize system prompt/JSON)
+            if (Math.Abs(cfg.RepetitionPenalty - 1.0) > 1e-6 && generated.Count > 0)
             {
                 float pen = (float)cfg.RepetitionPenalty;
-                for (int i = 0; i < allIds.Count; i++)
+                int start = Math.Max(0, generated.Count - 64);
+                for (int i = start; i < generated.Count; i++)
                 {
-                    int id = allIds[i];
+                    int id = generated[i];
                     if ((uint)id < (uint)vocab)
                         work[id] = work[id] > 0 ? work[id] / pen : work[id] * pen;
                 }

@@ -4,51 +4,54 @@
              xmlns:vm="using:OPTISENS.App.ViewModels"
              x:DataType="vm:CoachViewModel"
              x:CompileBindings="True">
-  <Border Background="#12151B" BorderBrush="#242832" BorderThickness="1" CornerRadius="8" Padding="16">
+  <Border Background="#12151B" BorderBrush="#242832" BorderThickness="1" CornerRadius="8" Padding="18">
     <DockPanel>
-      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,10">
         <TextBlock Grid.Column="0"
-                   Text="AI COACH TELEMETRY" FontSize="11" FontWeight="SemiBold"
-                   LetterSpacing="1.6" Foreground="#8E97A6" VerticalAlignment="Center"/>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-          <Button Content="{Binding ProviderBadge}"
-                  Command="{Binding ToggleBackendCommand}"
-                  Background="#1C2530" BorderBrush="#2A3A4A" BorderThickness="1"
-                  CornerRadius="4" Padding="8,2"
-                  FontFamily="Consolas,Menlo,monospace" FontSize="10" Foreground="#00F0FF"
-                  ToolTip.Tip="Click to switch GPU (DirectML) / CPU Eco at runtime"/>
-          <Button Content="FREE RAM"
-                  Command="{Binding UnloadModelCommand}"
-                  Background="#1C2530" BorderBrush="#2A3A4A" BorderThickness="1"
-                  CornerRadius="4" Padding="8,2"
-                  FontFamily="Consolas,Menlo,monospace" FontSize="10" Foreground="#E0B25A"
-                  ToolTip.Tip="Unload the model now to free RAM. It reloads automatically on your next message."/>
-        </StackPanel>
+                   Text="AI COACH" Classes="eyebrow" VerticalAlignment="Center"/>
+        <Button Grid.Column="1"
+                Command="{Binding ToggleBackendCommand}"
+                IsEnabled="{Binding !IsBusy}"
+                Background="#1C2530" BorderBrush="#2A3A4A" BorderThickness="1"
+                CornerRadius="4" Padding="9,3"
+                ToolTip.Tip="Click to toggle between CPU (Eco) and DirectML GPU">
+          <TextBlock Text="{Binding ProviderBadge}" Classes="mono-tabular"
+                     FontSize="10.5" Foreground="#00F0FF"/>
+        </Button>
+        <Button Grid.Column="2"
+                Command="{Binding UnloadModelCommand}"
+                IsVisible="{Binding IsModelLoaded}"
+                Background="#1C1F26" BorderBrush="#2A303D" BorderThickness="1"
+                CornerRadius="4" Padding="9,3"
+                ToolTip.Tip="Unload the AI model from RAM now; reloads automatically on your next message">
+          <TextBlock Text="FREE RAM" Classes="mono-tabular"
+                     FontSize="10.5" Foreground="#8E97A6"/>
+        </Button>
       </Grid>
 
       <TextBlock DockPanel.Dock="Top"
                  Text="{Binding StatusBanner}"
                  IsVisible="{Binding StatusBanner, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                 Foreground="#FFB03A" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                 Foreground="#FFB03A" FontSize="12.5" LineHeight="18" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
       <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
         <TextBox Grid.Column="0" Text="{Binding InputText}"
-                 FontFamily="Consolas,Menlo,monospace" FontSize="12"
+                 FontSize="13" Padding="10,8"
                  PlaceholderText="Ask the coach… e.g. &quot;make it 5% slower&quot;">
           <TextBox.KeyBindings>
             <KeyBinding Gesture="Enter" Command="{Binding SendCommand}"/>
           </TextBox.KeyBindings>
         </TextBox>
-        <Button Grid.Column="1" Content="Send" Command="{Binding SendCommand}" Margin="8,0,0,0" Padding="14,8"/>
+        <Button Grid.Column="1" Content="Send" Command="{Binding SendCommand}" Margin="8,0,0,0" Padding="16,8"/>
       </Grid>
 
-      <ScrollViewer MaxHeight="260">
+      <ScrollViewer x:Name="TranscriptScroll" MaxHeight="260" Padding="0,0,8,0">
         <ItemsControl ItemsSource="{Binding Transcript}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ChatLine">
               <TextBlock Text="{Binding Text}" TextWrapping="Wrap"
-                         FontFamily="Consolas,Menlo,monospace" FontSize="12"
-                         Foreground="{Binding Brush}" Margin="0,4"/>
+                         Classes="chat-prose"
+                         Foreground="{Binding Brush}" Margin="0,6"/>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

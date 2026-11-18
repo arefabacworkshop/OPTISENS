@@ -61,10 +61,10 @@ public static class Constants
     public const double MissClickCooldownS   = 0.12;     // Grace window after target spawn before off-target click counts as miss
 
     // --- AI (§8, D17) ---
-    public const double AiTemperature       = 0.15;      // [TUNABLE]
-    public const int    AiTopK              = 50;
-    public const double AiRepetitionPenalty = 1.1;
-    public const int    AiMaxNewTokens      = 256;
+    public const double AiTemperature       = 0.20;      // [TUNABLE]
+    public const int    AiTopK              = 40;
+    public const double AiRepetitionPenalty = 1.18;
+    public const int    AiMaxNewTokens      = 180;
     public const int    MaxToolRoundTrips   = 3;
 
     // --- Profile validation (§12 M5) ---

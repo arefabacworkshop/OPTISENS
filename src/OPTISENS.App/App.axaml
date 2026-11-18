@@ -36,12 +36,30 @@
     <FluentTheme/>
 
     <Style Selector="Window, UserControl">
-      <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter, Segoe UI, Sans-Serif"/>
+      <Setter Property="FontFamily" Value="fonts:Inter#Inter, Segoe UI, Inter, Sans-Serif"/>
       <Setter Property="Foreground" Value="#F4F6F8"/>
     </Style>
 
     <Style Selector="TextBlock.tabular">
       <Setter Property="FontFeatures" Value="tnum=1"/>
+    </Style>
+
+    <Style Selector="TextBlock.mono-tabular">
+      <Setter Property="FontFamily" Value="Cascadia Mono, JetBrains Mono, SF Mono, Consolas, monospace"/>
+      <Setter Property="FontFeatures" Value="tnum=1"/>
+    </Style>
+
+    <Style Selector="TextBlock.eyebrow">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="LetterSpacing" Value="1.6"/>
+      <Setter Property="Foreground" Value="#8E97A6"/>
+    </Style>
+
+    <Style Selector="TextBlock.chat-prose">
+      <Setter Property="FontSize" Value="13.5"/>
+      <Setter Property="LineHeight" Value="21"/>
+      <Setter Property="Foreground" Value="#E6EAF0"/>
     </Style>
 
     <Style Selector="Button">

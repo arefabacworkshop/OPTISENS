@@ -84,6 +84,19 @@ public class TrajectoryTests
         Assert.Equal(0.0, tAdj);
     }
 
+    [Fact]
+    public void Extract_HorizontalDxSamples_ComputesAccurateEFlickAndJerk()
+    {
+        var (samples, attempts) = OPTISENS.Core.Tests.Fixtures.SyntheticRound.Generate(30.0, 800, seed: 7, durationS: 1.0, targetAzimuthDeg: 40.0);
+        var block = Trajectory.Resample(samples, dpi: 800, cm360: 30.0, tStartS: 0.0, tEndS: 0.999);
+        var extractor = new KinematicFeatureExtractor();
+        var metrics = extractor.Extract(block, attempts);
+
+        Assert.Single(metrics.FlickErrors);
+        Assert.InRange(Math.Abs(metrics.FlickErrors[0]), 0.0, 0.15);
+        Assert.True(metrics.JerkDegPerS3 > 0);
+    }
+
     private static KinematicBlock MakeViewYBlock(int n, Func<int, double> viewYAt)
     {
         var t = new double[n];

@@ -20,8 +20,15 @@ public static class ShaderLib
         out vec4 FragColor;
         uniform vec3 uColor;
         void main() {
-            float ndl = max(dot(normalize(vNormal), normalize(vec3(0.35, 0.75, 0.55))), 0.0);
-            FragColor = vec4(uColor * (0.55 + 0.45 * ndl), 1.0);
+            vec3 n = normalize(vNormal);
+            vec3 l = normalize(vec3(0.35, 0.78, 0.52));
+            vec3 v = vec3(0.0, 0.0, 1.0);
+            vec3 h = normalize(l + v);
+            float ndl = max(dot(n, l), 0.0);
+            float spec = pow(max(dot(n, h), 0.0), 28.0) * 0.45;
+            float rim = pow(1.0 - max(abs(n.z), 0.0), 2.4) * 0.55;
+            vec3 col = uColor * (0.38 + 0.62 * ndl) + vec3(spec) + uColor * rim;
+            FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
         }
         """;
 

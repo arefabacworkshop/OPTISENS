@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OPTISENS.App.Services;
 using OPTISENS.Core.Config;
 using OPTISENS.Core.Input;
 using OPTISENS.Core.Optimization;
@@ -22,6 +23,11 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _blockStatus = "Get ready";
     [ObservableProperty] private double _blockProgress;
     [ObservableProperty] private string _liveStatus = "";
+    [ObservableProperty] private string _streakText = "";
+    [ObservableProperty] private string _offScreenHintText = "";
+    [ObservableProperty] private bool _isRestPhase;
+    [ObservableProperty] private string _restSummaryText = "";
+    [ObservableProperty] private bool _isHitCrosshair;
     [ObservableProperty] private string? _cursorWarning;
     [ObservableProperty] private bool _showAbortConfirm;
 
@@ -41,6 +47,9 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
         _controller = new RoundController(input, profile.Dpi, profile.PadWidthCm);
         _controller.RequestCursorLock += () => Dispatcher.UIThread.Post(() => RequestCursorLock?.Invoke());
         _controller.RequestCursorUnlock += () => Dispatcher.UIThread.Post(() => RequestCursorUnlock?.Invoke());
+        _controller.TargetHit += streak => SoundEffectsService.PlayHit(streak);
+        _controller.TargetMissed += () => SoundEffectsService.PlayMiss();
+        _controller.PhaseChanged += _ => SoundEffectsService.PlayPhaseChange();
         _controller.HudUpdated += OnHudUpdated;
         _controller.Completed += (report, partial) =>
         {
@@ -66,16 +75,21 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
 
     public void ToggleDevOverlay()
     {
-#if DEBUG || OPTISENS_DEV
         if (_devEnabled)
             DevOverlayVisible = !DevOverlayVisible;
-#else
-        if (_devEnabled)
-            DevOverlayVisible = !DevOverlayVisible;
-#endif
     }
 
-    public void RequestAbortPrompt() => ShowAbortConfirm = true;
+    public void RequestAbortPrompt()
+    {
+        ShowAbortConfirm = true;
+        RequestCursorUnlock?.Invoke();
+    }
+
+    [RelayCommand]
+    private void SkipRest()
+    {
+        _controller.RequestSkipRest();
+    }
 
     [RelayCommand]
     private void CancelAbort()
@@ -129,16 +143,30 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
 
     private void OnHudUpdated(HudSnapshot hud)
     {
+        var snap = ViewportState.Snapshot;
+        string offScreen = "";
+        if (hud.Phase is RoundPhase.BlockTracking or RoundPhase.BlockFlick or RoundPhase.BlockDot && snap.Targets.Length > 0)
+        {
+            if (snap.TargetDeltaYawDeg > 42.0) offScreen = "TARGET ❯❯";
+            else if (snap.TargetDeltaYawDeg < -42.0) offScreen = "❮❮ TARGET";
+        }
+
         Dispatcher.UIThread.Post(() =>
         {
             RoundText = $"Round {hud.RoundNumber} / {Constants.MaxRounds}";
             BlockStatus = hud.BlockStatus;
             BlockProgress = hud.BlockProgress;
             LiveStatus = hud.LiveStatus;
+            IsRestPhase = hud.Phase == RoundPhase.Rest;
+            RestSummaryText = hud.Phase == RoundPhase.Rest
+                ? $"BSI Score: {hud.LastRoundBsi:F1} / 100   ·   Accuracy: {hud.LastRoundAccuracy:F0}%"
+                : "";
+            StreakText = hud.Streak >= 2 ? $"🔥 x{hud.Streak} STREAK" : "";
+            OffScreenHintText = offScreen;
+            IsHitCrosshair = snap.HitFlash || (snap.Targets.Length > 0 && snap.Targets[0].IsHit);
 
             if (DevOverlayVisible)
             {
-                var snap = ViewportState.Snapshot;
                 double fps = _lastFrameMs > 0.01 ? 1000.0 / _lastFrameMs : 0;
                 DevOverlayText =
                     $"FPS: {fps:F0} ({_lastFrameMs:F1} ms)\n" +

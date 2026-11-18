@@ -25,8 +25,10 @@ public partial class ShellView : Window
         {
             case SessionViewModel sessionVm:
                 e.Handled = true;
-                try { CursorHelper.UnlockAndShow(); } catch { /* ignore */ }
-                sessionVm.AbortCommand.Execute(null);
+                if (sessionVm.ShowAbortConfirm)
+                    sessionVm.CancelAbortCommand.Execute(null);
+                else
+                    sessionVm.RequestAbortPrompt();
                 break;
 
             case ResultsViewModel:

@@ -18,6 +18,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private ViewModelBase _currentPage;
     [ObservableProperty] private string? _remediationBanner;
 
+    private HardwareProfileViewModel? _activeProfileVm;
     private HardwareProfile _activeProfile;
     private SessionViewModel? _activeSession;
     private ResultsViewModel? _activeResults;
@@ -57,13 +58,24 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
 
     private HardwareProfileViewModel CreateHardwareProfileVm()
     {
-        var hw = new HardwareProfileViewModel();
+        _activeProfileVm?.Dispose();
+        var hw = new HardwareProfileViewModel(_input);
         hw.ProfileReady += OnProfileReady;
+        _activeProfileVm = hw;
         return hw;
     }
 
     private void OnProfileReady(HardwareProfile profile)
     {
+        _activeProfileVm?.Dispose();
+        _activeProfileVm = null;
+
+        // Always release any previous AI Coach / InferenceSession before starting a new calibration
+        _activeResults?.Coach.Dispose();
+        _activeResults = null;
+        _activeSession?.Dispose();
+        _activeSession = null;
+
         _activeProfile = profile;
         var sessionVm = new SessionViewModel(_input, profile, _devMode);
         sessionVm.SessionFinished += (report, scores, invalid, partial) =>
@@ -111,6 +123,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        _activeProfileVm?.Dispose();
         _activeSession?.Dispose();
         _activeResults?.Coach.Dispose();
     }

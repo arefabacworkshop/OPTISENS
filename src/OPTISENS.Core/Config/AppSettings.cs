@@ -3,7 +3,30 @@ using System.Text.Json.Serialization;
 
 namespace OPTISENS.Core.Config;
 
-public sealed record AppSettings(string? AssetsDirectory = null);
+/// <summary>Inference backend preference for the AI Coach engine.</summary>
+public enum InferenceBackendMode
+{
+    DirectMlGpu,
+    CpuEco
+}
+
+public sealed record AppSettings(
+    string? AssetsDirectory = null,
+    string? InferenceBackend = null)
+{
+    /// <summary>Resolves the effective backend mode, defaulting by platform when unset.</summary>
+    public InferenceBackendMode GetBackendMode() =>
+        InferenceBackend?.ToLowerInvariant() switch
+        {
+            "cpueco" or "cpu" => InferenceBackendMode.CpuEco,
+            "directmlgpu" or "directml" or "gpu" => InferenceBackendMode.DirectMlGpu,
+            // Default is CpuEco on every platform: the DirectML decode path produces
+            // garbage tokens for this quantized model on tested AMD hardware (ORT
+            // 1.22-1.24, greedy divergence at the first cache-fed step), while CPU is
+            // coherent and faster (19 tok/s measured). Opt in to GPU via the coach toggle.
+            _ => InferenceBackendMode.CpuEco
+        };
+}
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(AppSettings))]

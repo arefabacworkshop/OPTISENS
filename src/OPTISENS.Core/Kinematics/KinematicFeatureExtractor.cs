@@ -10,8 +10,11 @@ public sealed class KinematicFeatureExtractor
         IReadOnlyList<Attempt> attempts,
         double dt = Constants.ResampleDtS)
     {
-        double jerk = Trajectory.MeanAbsJerk(block.ViewY, dt);      // scoring variant (D21)
-        double jerkPhys = Trajectory.MeanAbsJerk(block.PhysY, dt);  // telemetry only
+        var primaryView = SelectPrimaryAxis(block.ViewX, block.ViewY);
+        var primaryPhys = SelectPrimaryAxis(block.PhysX, block.PhysY);
+
+        double jerk = Trajectory.MeanAbsJerk(primaryView, dt);      // scoring variant (D21)
+        double jerkPhys = Trajectory.MeanAbsJerk(primaryPhys, dt);  // telemetry only
 
         var eFlick = new List<double>();
         var tAdj = new List<double>();
@@ -19,7 +22,7 @@ public sealed class KinematicFeatureExtractor
         {
             if (at.BlockKind == BlockKind.Flick)
                 eFlick.Add(EFlick(block, at));
-            if (at.ClickS is double click)
+            if (at.ClickS is double click && at.Hit)
                 tAdj.Add(TAdjustMs(block, at, click));
         }
 
@@ -27,7 +30,7 @@ public sealed class KinematicFeatureExtractor
         return new BlockMetrics(
             jerk,
             jerkPhys,
-            MeanSpeed(block, dt),
+            MeanSpeed2D(block, dt),
             eFlick.ToArray(),
             tAdj.ToArray(),
             0,
@@ -37,13 +40,21 @@ public sealed class KinematicFeatureExtractor
 
     public static double EFlick(KinematicBlock b, Attempt at)
     {
+        var axis = SelectPrimaryAxis(b.ViewX, b.ViewY);
+        if (axis.Length == 0) return 0;
+
         double sigma = Math.Sign(at.SignedTargetAzimuthDeg);
         if (sigma == 0) sigma = 1;
+
         int k0 = IndexOfTime(b.GridT, at.TargetOnsetS);
-        double y0 = b.ViewY[k0];
-        double peak = double.MinValue;
-        for (int k = k0; k < b.GridT.Length; k++)
-            peak = Math.Max(peak, sigma * (b.ViewY[k] - y0));
+        double endS = at.WindowEndS ?? at.ClickS ?? (at.TargetOnsetS + Constants.FlickTargetLifeS);
+        int k1 = Math.Max(k0, IndexOfTime(b.GridT, endS));
+
+        double y0 = axis[k0];
+        double peak = 0.0;
+        for (int k = k0; k <= k1 && k < axis.Length; k++)
+            peak = Math.Max(peak, sigma * (axis[k] - y0));
+
         double target = Math.Abs(at.SignedTargetAzimuthDeg);
         if (target <= 1e-9) return 0;
         double e = (peak - target) / target;
@@ -52,14 +63,29 @@ public sealed class KinematicFeatureExtractor
 
     public static double TAdjustMs(KinematicBlock b, Attempt at, double clickS)
     {
-        var v = Trajectory.Diff(b.ViewY, Constants.ResampleDtS);
-        var omega = new double[v.Length];
-        for (int i = 0; i < v.Length; i++) omega[i] = Math.Abs(v[i]);
+        var vx = Trajectory.Diff(b.ViewX, Constants.ResampleDtS);
+        var vy = Trajectory.Diff(b.ViewY, Constants.ResampleDtS);
+        int len = Math.Min(vx.Length, vy.Length);
+        if (len == 0) return 0;
+
+        var omega = new double[len];
+        for (int i = 0; i < len; i++)
+            omega[i] = Math.Sqrt(vx[i] * vx[i] + vy[i] * vy[i]);
 
         int k0 = IndexOfTime(b.GridT, at.TargetOnsetS);
+        int kClick = Math.Clamp(IndexOfTime(b.GridT, clickS), k0, len - 1);
         int need = Constants.ZeroVelDwellMs; // 30 grid points at dt=0.001
+
+        // Skip initial pre-movement reaction phase until ballistic motion begins (omega >= threshold)
+        int kMoveStart = k0;
+        while (kMoveStart < kClick && omega[kMoveStart] < Constants.ZeroVelThresholdDegPerS)
+            kMoveStart++;
+
+        // If movement never exceeded threshold during the window, fall back to k0
+        int searchStart = kMoveStart < kClick ? kMoveStart : k0;
+
         int run = 0;
-        for (int k = k0; k < omega.Length; k++)
+        for (int k = searchStart; k <= kClick; k++)
         {
             run = omega[k] < Constants.ZeroVelThresholdDegPerS ? run + 1 : 0; // 5.0 deg/s
             if (run >= need)
@@ -71,13 +97,42 @@ public sealed class KinematicFeatureExtractor
         return 0; // never settled: latency unknown, accuracy penalizes
     }
 
-    private static double MeanSpeed(KinematicBlock b, double dt)
+    private static double[] SelectPrimaryAxis(double[] x, double[] y)
     {
-        var v = Trajectory.Diff(b.ViewY, dt);
-        if (v.Length == 0) return 0;
+        double rangeX = 0, rangeY = 0;
+        if (x.Length > 1)
+        {
+            double minX = x[0], maxX = x[0];
+            for (int i = 1; i < x.Length; i++)
+            {
+                if (x[i] < minX) minX = x[i];
+                if (x[i] > maxX) maxX = x[i];
+            }
+            rangeX = maxX - minX;
+        }
+        if (y.Length > 1)
+        {
+            double minY = y[0], maxY = y[0];
+            for (int i = 1; i < y.Length; i++)
+            {
+                if (y[i] < minY) minY = y[i];
+                if (y[i] > maxY) maxY = y[i];
+            }
+            rangeY = maxY - minY;
+        }
+        return rangeX >= 1e-6 || rangeX >= rangeY ? x : y;
+    }
+
+    private static double MeanSpeed2D(KinematicBlock b, double dt)
+    {
+        var vx = Trajectory.Diff(b.ViewX, dt);
+        var vy = Trajectory.Diff(b.ViewY, dt);
+        int len = Math.Min(vx.Length, vy.Length);
+        if (len == 0) return 0;
         double s = 0;
-        foreach (var x in v) s += Math.Abs(x);
-        return s / v.Length;
+        for (int i = 0; i < len; i++)
+            s += Math.Sqrt(vx[i] * vx[i] + vy[i] * vy[i]);
+        return s / len;
     }
 
     private static int IndexOfTime(double[] t, double ts)

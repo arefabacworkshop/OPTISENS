@@ -41,29 +41,30 @@ public static class Constants
     public const double BlockDotS            = 10.0;
     public const double RoundIntroS          = 3.0;
     public const double RestS                = 10.0;
-    public const double SphereRadiusDeg      = 3.5;
-    public const double SphereSlackDeg       = 1.0;
-    public const double SphereAmpXDeg        = 14.0;
-    public const double SphereAmpYDeg        = 9.0;
-    public const double SphereFreqXHz        = 0.10;
-    public const double SphereFreqYHz        = 0.07;
+    public const double SphereRadiusDeg      = 3.2;
+    public const double SphereSlackDeg       = 0.8;
+    public const double SphereAmpXDeg        = 18.0;
+    public const double SphereAmpYDeg        = 10.0;
+    public const double SphereFreqXHz        = 0.18;
+    public const double SphereFreqYHz        = 0.13;
     public const double SpherePhaseRad       = Math.PI / 3.0;
-    public const double FlickAzMinDeg        = 90.0;
-    public const double FlickAzMaxDeg        = 120.0;
-    public const double FlickElMaxDeg        = 8.0;
-    public const double FlickTargetRadiusDeg = 3.0;
-    public const double FlickTargetLifeS     = 2.4;
-    public const double DotWindowDeg         = 10.0;
+    public const double FlickAzMinDeg        = 24.0;     // Visible peripheral & wide flicks
+    public const double FlickAzMaxDeg        = 64.0;     // Includes wide turns without 100% blind off-screen spawns
+    public const double FlickElMaxDeg        = 10.0;
+    public const double FlickTargetRadiusDeg = 2.8;
+    public const double FlickTargetLifeS     = 2.0;
+    public const double DotWindowDeg         = 12.0;
     public const double DotMinSepDeg         = 2.5;
-    public const double DotRadiusDeg         = 0.8;
-    public const double DotLifeS             = 1.8;
-    public const int    DotCount             = 10;
+    public const double DotRadiusDeg         = 0.95;
+    public const double DotLifeS             = 1.6;
+    public const int    DotCount             = 45;       // Never runs out during 10s block
+    public const double MissClickCooldownS   = 0.12;     // Grace window after target spawn before off-target click counts as miss
 
     // --- AI (§8, D17) ---
     public const double AiTemperature       = 0.15;      // [TUNABLE]
     public const int    AiTopK              = 50;
     public const double AiRepetitionPenalty = 1.1;
-    public const int    AiMaxNewTokens      = 512;
+    public const int    AiMaxNewTokens      = 256;
     public const int    MaxToolRoundTrips   = 3;
 
     // --- Profile validation (§12 M5) ---

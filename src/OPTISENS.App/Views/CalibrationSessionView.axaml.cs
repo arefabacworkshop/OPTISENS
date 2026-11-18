@@ -60,6 +60,11 @@ public partial class CalibrationSessionView : UserControl
             vm.ToggleDevOverlay();
             e.Handled = true;
         }
+        else if (e.Key == Key.Space && vm.IsRestPhase)
+        {
+            vm.SkipRestCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     private void LockCursor()

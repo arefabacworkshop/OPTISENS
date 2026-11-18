@@ -15,7 +15,10 @@ public sealed record HudSnapshot(
     int MaxRounds,
     string BlockStatus,
     double BlockProgress,
-    string LiveStatus);
+    string LiveStatus,
+    int Streak = 0,
+    double LastRoundBsi = 0,
+    double LastRoundAccuracy = 0);
 
 public sealed class RoundController
 {
@@ -42,6 +45,8 @@ public sealed class RoundController
     private double _pitchDeg;
     private MouseButtons _prevButtons;
     private double _hitFlashUntilS;
+    private double _missFlashUntilS;
+    private volatile bool _skipRestRequested;
 
     // SampleRing sequence + time windows for blocks A, B, C
     private long _winAStartSeq, _winAEndSeq;
@@ -78,6 +83,9 @@ public sealed class RoundController
     public event Action? RequestCursorUnlock;
     public event Action<HudSnapshot>? HudUpdated;
     public event Action<OptimizationReport, bool>? Completed;
+    public event Action<int>? TargetHit;
+    public event Action? TargetMissed;
+    public event Action<RoundPhase>? PhaseChanged;
 
     public void Start(double nowS)
     {
@@ -86,6 +94,8 @@ public sealed class RoundController
         _rateWindowStartS = nowS;
         BeginNextRound(nowS);
     }
+
+    public void RequestSkipRest() => _skipRestRequested = true;
 
     public void Abort(double nowS)
     {
@@ -147,7 +157,7 @@ public sealed class RoundController
     private void ApplyMotionSample(in RawMotionSample s)
     {
         var (ny, np) = ViewportState.ApplySample(_yawDeg, _pitchDeg, in s, _dpi, _currentProbeCm360);
-        double dyaw = ((ny - _yawDeg + 540.0) % 360.0) - 180.0;
+        double dyaw = ScenarioState.SignedYawDeltaDeg(_yawDeg, ny);
         _yawDeg = ny;
         _pitchDeg = np;
 
@@ -179,6 +189,7 @@ public sealed class RoundController
                     _winAStartSeq = _ring.Sequence;
                     _winAStartS = nowS;
                     _scenario!.StartBlock(BlockKind.Tracking, nowS, _yawDeg, _pitchDeg);
+                    PhaseChanged?.Invoke(_phase);
                 }
                 break;
 
@@ -195,12 +206,24 @@ public sealed class RoundController
                     _winBStartSeq = _ring.Sequence;
                     _winBStartS = nowS;
                     _scenario.StartBlock(BlockKind.Flick, nowS, _yawDeg, _pitchDeg);
+                    PhaseChanged?.Invoke(_phase);
                 }
                 break;
 
             case RoundPhase.BlockFlick:
-                if (_scenario!.Tick(nowS, _yawDeg, _pitchDeg, leftEdge))
-                    _hitFlashUntilS = nowS + 0.08;
+            {
+                var outcome = _scenario!.Tick(nowS, _yawDeg, _pitchDeg, leftEdge);
+                if (outcome == TickOutcome.Hit)
+                {
+                    _hitFlashUntilS = nowS + 0.09;
+                    TargetHit?.Invoke(_scenario.Streak);
+                }
+                else if (outcome == TickOutcome.Miss)
+                {
+                    _missFlashUntilS = nowS + 0.12;
+                    TargetMissed?.Invoke();
+                }
+
                 if (elapsed >= Constants.BlockFlickS)
                 {
                     _winBEndSeq = _ring.Sequence;
@@ -212,12 +235,25 @@ public sealed class RoundController
                     _winCStartSeq = _ring.Sequence;
                     _winCStartS = nowS;
                     _scenario.StartBlock(BlockKind.Dot, nowS, _yawDeg, _pitchDeg);
+                    PhaseChanged?.Invoke(_phase);
                 }
                 break;
+            }
 
             case RoundPhase.BlockDot:
-                if (_scenario!.Tick(nowS, _yawDeg, _pitchDeg, leftEdge))
-                    _hitFlashUntilS = nowS + 0.08;
+            {
+                var outcome = _scenario!.Tick(nowS, _yawDeg, _pitchDeg, leftEdge);
+                if (outcome == TickOutcome.Hit)
+                {
+                    _hitFlashUntilS = nowS + 0.09;
+                    TargetHit?.Invoke(_scenario.Streak);
+                }
+                else if (outcome == TickOutcome.Miss)
+                {
+                    _missFlashUntilS = nowS + 0.12;
+                    TargetMissed?.Invoke();
+                }
+
                 if (elapsed >= Constants.BlockDotS)
                 {
                     _winCEndSeq = _ring.Sequence;
@@ -226,24 +262,41 @@ public sealed class RoundController
                     EnterRoundScoring(nowS);
                 }
                 break;
+            }
 
             case RoundPhase.Rest:
-                if (elapsed >= Constants.RestS)
+                if (_skipRestRequested || elapsed >= Constants.RestS)
+                {
+                    _skipRestRequested = false;
                     BeginNextRound(nowS);
+                }
                 break;
         }
     }
 
     private void PublishViewportState(double nowS)
     {
+        var targets = _scenario?.CurrentTargets ?? Array.Empty<TargetSphere>();
+        double deltaYaw = 0, deltaPitch = 0;
+        if (targets.Length > 0)
+        {
+            deltaYaw = ScenarioState.SignedYawDeltaDeg(_yawDeg, targets[0].AzimuthDeg);
+            deltaPitch = targets[0].ElevationDeg - _pitchDeg;
+        }
+
         ViewportState.Publish(new ViewportState
         {
             YawDeg = _yawDeg,
             PitchDeg = _pitchDeg,
             SampleSeq = _ring.Sequence,
             ProbeCm360 = _currentProbeCm360,
-            Targets = _scenario?.CurrentTargets ?? Array.Empty<TargetSphere>(),
+            ActiveBlock = _scenario?.ActiveBlock ?? BlockKind.Tracking,
+            Targets = targets,
             HitFlash = nowS < _hitFlashUntilS,
+            MissFlash = nowS < _missFlashUntilS,
+            StreakCount = _scenario?.Streak ?? 0,
+            TargetDeltaYawDeg = deltaYaw,
+            TargetDeltaPitchDeg = deltaPitch,
             SamplesPerSec = _samplesPerSec,
             DroppedSamples = 0,
             LastSwipeCm360 = _lastSwipeCm360
@@ -252,6 +305,7 @@ public sealed class RoundController
 
     private void BeginNextRound(double nowS)
     {
+        _skipRestRequested = false;
         _roundIndex++;
         _roundStartS = nowS - _sessionStartS;
         _currentProbeCm360 = _session.NextProbeCm360();
@@ -261,6 +315,7 @@ public sealed class RoundController
         _phase = RoundPhase.RoundIntro;
         _phaseStartS = nowS;
         RequestCursorLock?.Invoke();
+        PhaseChanged?.Invoke(_phase);
     }
 
     private void EnterRoundScoring(double nowS)
@@ -296,11 +351,13 @@ public sealed class RoundController
         {
             _phase = RoundPhase.Rest;
             _phaseStartS = nowS;
+            PhaseChanged?.Invoke(_phase);
         }
         else
         {
             _phase = RoundPhase.SessionComplete;
             FinalReport = _session.Report();
+            PhaseChanged?.Invoke(_phase);
             Completed?.Invoke(FinalReport, false);
         }
     }
@@ -312,7 +369,6 @@ public sealed class RoundController
         if (samples.Length == 0)
             return (new BlockMetrics(0, 0, 0, Array.Empty<double>(), Array.Empty<double>(), 0, attempts.Count(a => a.Hit), attempts.Count), false);
 
-        // Resample using sample timestamp range if available; fall back to tStartS..tEndS
         double s0 = samples[0].TimestampUs / 1e6;
         double s1 = samples[^1].TimestampUs / 1e6;
         double gStart = Math.Min(s0, tStartS);
@@ -329,33 +385,45 @@ public sealed class RoundController
     private void EmitHud(double nowS)
     {
         double elapsed = nowS - _phaseStartS;
+        double lastBsi = _roundScores.Count > 0 ? _roundScores[^1].YNorm * 100.0 : 0;
+        double lastAcc = _roundScores.Count > 0 ? _roundScores[^1].Components.Accuracy * 100.0 : 0;
+
         (string status, double prog, string live) = _phase switch
         {
             RoundPhase.RoundIntro => (
-                $"Get ready ({Math.Max(1, (int)Math.Ceiling(Constants.RoundIntroS - elapsed))})",
+                $"GET READY ({Math.Max(1, (int)Math.Ceiling(Constants.RoundIntroS - elapsed))}s)",
                 Math.Clamp(elapsed / Constants.RoundIntroS, 0, 1),
-                ""),
+                "Center your mouse on the pad — Phase 1: Smooth Tracking"),
             RoundPhase.BlockTracking => (
-                "Tracking",
+                "PHASE 1/3 · REACTIVE TRACKING",
                 Math.Clamp(elapsed / Constants.BlockTrackingS, 0, 1),
-                $"On target {_scenario?.LiveTrackingAccuracy * 100:F0}%"),
+                $"Lock: {_scenario?.LiveTrackingAccuracy * 100:F0}%   ({Math.Max(0, Constants.BlockTrackingS - elapsed):F1}s)"),
             RoundPhase.BlockFlick => (
-                "Wide Flicks",
+                "PHASE 2/3 · REFLEX FLICKS",
                 Math.Clamp(elapsed / Constants.BlockFlickS, 0, 1),
-                $"Hits {_scenario?.FlickAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.FlickAttempts.Count ?? 0}"),
+                $"Hits: {_scenario?.FlickAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.FlickAttempts.Count ?? 0}   ({Math.Max(0, Constants.BlockFlickS - elapsed):F1}s)"),
             RoundPhase.BlockDot => (
-                "Micro-Dots",
+                "PHASE 3/3 · MICRO-CLUSTER PRECISION",
                 Math.Clamp(elapsed / Constants.BlockDotS, 0, 1),
-                $"Hits {_scenario?.DotAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.DotAttempts.Count ?? 0}"),
+                $"Hits: {_scenario?.DotAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.DotAttempts.Count ?? 0}   ({Math.Max(0, Constants.BlockDotS - elapsed):F1}s)"),
             RoundPhase.Rest => (
-                $"Rest ({Math.Max(1, (int)Math.Ceiling(Constants.RestS - elapsed))}s)",
+                $"ROUND {_roundIndex} COMPLETE · REST ({Math.Max(1, (int)Math.Ceiling(Constants.RestS - elapsed))}s)",
                 Math.Clamp(elapsed / Constants.RestS, 0, 1),
-                $"Next: Round {_roundIndex + 1} of {Constants.MaxRounds}"),
-            RoundPhase.SessionComplete => ("Session complete", 1.0, ""),
-            RoundPhase.Aborted => ("Aborted", 0.0, ""),
-            _ => ("Idle", 0.0, "")
+                $"Round BSI: {lastBsi:F1}  |  Accuracy: {lastAcc:F0}%  —  Press [SPACE] to start Round {_roundIndex + 1}"),
+            RoundPhase.SessionComplete => ("SESSION COMPLETE", 1.0, ""),
+            RoundPhase.Aborted => ("ABORTED", 0.0, ""),
+            _ => ("IDLE", 0.0, "")
         };
 
-        HudUpdated?.Invoke(new HudSnapshot(_phase, _roundIndex, Constants.MaxRounds, status, prog, live));
+        HudUpdated?.Invoke(new HudSnapshot(
+            _phase,
+            _roundIndex,
+            Constants.MaxRounds,
+            status,
+            prog,
+            live,
+            _scenario?.Streak ?? 0,
+            lastBsi,
+            lastAcc));
     }
 }

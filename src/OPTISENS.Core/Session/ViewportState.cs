@@ -1,9 +1,19 @@
 using OPTISENS.Core.Input;
+using OPTISENS.Core.Kinematics;
 using OPTISENS.Core.Units;
 
 namespace OPTISENS.Core.Session;
 
-public readonly record struct TargetSphere(double AzimuthDeg, double ElevationDeg, double RadiusDeg, bool IsHit);
+public readonly record struct TargetSphere(
+    double AzimuthDeg,
+    double ElevationDeg,
+    double RadiusDeg,
+    bool IsHit,
+    double LifeRemaining01 = 1.0,
+    double SpawnAgeS = 1.0,
+    bool HasTether = false,
+    double PrevAzimuthDeg = 0.0,
+    double PrevElevationDeg = 0.0);
 
 public sealed class ViewportState
 {
@@ -14,8 +24,13 @@ public sealed class ViewportState
     public double PitchDeg { get; init; }
     public long SampleSeq { get; init; }
     public double ProbeCm360 { get; init; }
+    public BlockKind ActiveBlock { get; init; }
     public TargetSphere[] Targets { get; init; } = Array.Empty<TargetSphere>();
     public bool HitFlash { get; init; }
+    public bool MissFlash { get; init; }
+    public int StreakCount { get; init; }
+    public double TargetDeltaYawDeg { get; init; }
+    public double TargetDeltaPitchDeg { get; init; }
     public double SamplesPerSec { get; init; }
     public long DroppedSamples { get; init; }
     public double LastSwipeCm360 { get; init; }

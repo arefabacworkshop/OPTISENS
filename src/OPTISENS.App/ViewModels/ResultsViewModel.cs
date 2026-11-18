@@ -3,6 +3,7 @@ using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OPTISENS.App.Controls;
+using OPTISENS.Core.Config;
 using OPTISENS.Core.Optimization;
 using OPTISENS.Core.Projection;
 using OPTISENS.Core.Scoring;
@@ -11,18 +12,25 @@ using OPTISENS.Core.Session;
 namespace OPTISENS.App.ViewModels;
 
 public readonly record struct RoundRow(
+    int Index,
+    double ProbeCm360,
     string RoundText,
     string ProbeText,
     string BsiText,
     string AccuracyText,
     string JerkText,
-    string FlickText);
+    string FlickText)
+{
+    public bool IsDataRow => Index >= 0;
+}
 
 public partial class ProjectionCard : ObservableObject
 {
     [ObservableProperty] private string _gameName = "";
     [ObservableProperty] private string _sensText = "";
+    [ObservableProperty] private string _buttonLabel = "Copy";
     private readonly Func<IClipboard?> _clipboard;
+    private int _copyVersion;
 
     public ProjectionCard(string gameName, double sens, Func<IClipboard?> clipboard)
     {
@@ -34,7 +42,15 @@ public partial class ProjectionCard : ObservableObject
     [RelayCommand]
     private async Task CopyAsync()
     {
-        if (_clipboard() is { } clip) await clip.SetTextAsync(SensText);
+        if (_clipboard() is { } clip)
+        {
+            await clip.SetTextAsync(SensText);
+            int ver = Interlocked.Increment(ref _copyVersion);
+            ButtonLabel = "Copied!";
+            await Task.Delay(1500);
+            if (_copyVersion == ver)
+                ButtonLabel = "Copy";
+        }
     }
 }
 
@@ -47,6 +63,14 @@ public partial class ResultsViewModel : ViewModelBase
     [ObservableProperty] private IReadOnlyList<GPPoint>? _curve;
     [ObservableProperty] private IReadOnlyList<ObservationPoint>? _observations;
 
+    [ObservableProperty] private double _minCm360 = Constants.BoundsMinCm360;
+    [ObservableProperty] private double _maxCm360 = Constants.BoundsMaxCm360;
+    [ObservableProperty] private double _activeCm360 = 30.0;
+    [ObservableProperty] private double _optimalCm360 = 30.0;
+    [ObservableProperty] private bool _isAdjusted;
+    [ObservableProperty] private decimal _editableDpi = Constants.DpiDefault;
+    [ObservableProperty] private int _highlightedRoundIndex = -1;
+
     public event Action? BackToMenuRequested;
     public event Action? RecalibrateRequested;
 
@@ -56,7 +80,23 @@ public partial class ResultsViewModel : ViewModelBase
     [RelayCommand]
     private void Recalibrate() => RecalibrateRequested?.Invoke();
 
-    private double _dpi;
+    [RelayCommand]
+    private void ResetToOptimal() => ActiveCm360 = OptimalCm360;
+
+    [RelayCommand]
+    private void SelectRound(RoundRow row)
+    {
+        if (!row.IsDataRow) return;
+        HighlightedRoundIndex = HighlightedRoundIndex == row.Index ? -1 : row.Index;
+        if (HighlightedRoundIndex >= 0)
+            ActiveCm360 = Math.Clamp(row.ProbeCm360, MinCm360, MaxCm360);
+    }
+
+    public void SelectCm360FromPlot(double cm360)
+    {
+        HighlightedRoundIndex = -1;
+        ActiveCm360 = Math.Clamp(cm360, MinCm360, MaxCm360);
+    }
 
     public ObservableCollection<RoundRow> Rounds { get; } = new();
     public ObservableCollection<ProjectionCard> Projections { get; } = new();
@@ -66,7 +106,21 @@ public partial class ResultsViewModel : ViewModelBase
     public ResultsViewModel(CoachViewModel coach)
     {
         Coach = coach;
-        Coach.Cm360Adjusted += UpdateRecommendedCm360;
+        Coach.Cm360Adjusted += cm => ActiveCm360 = Math.Clamp(cm, MinCm360, MaxCm360);
+    }
+
+    partial void OnActiveCm360Changed(double value)
+    {
+        HeroValueText = $"{value:F1}";
+        HeroText = $"{value:F1} cm/360";
+        IsAdjusted = Math.Abs(value - OptimalCm360) > 0.05;
+        RefreshProjections(value);
+    }
+
+    partial void OnEditableDpiChanged(decimal value)
+    {
+        if (value >= Constants.DpiMin && value <= Constants.DpiMax)
+            RefreshProjections(ActiveCm360);
     }
 
     public void LoadReport(
@@ -76,9 +130,11 @@ public partial class ResultsViewModel : ViewModelBase
         double dpi,
         bool partial)
     {
-        _dpi = dpi;
-        HeroValueText = $"{report.RecommendedCm360:F1}";
-        HeroText = $"{report.RecommendedCm360:F1} cm/360";
+        MinCm360 = report.Curve[0].Cm360;
+        MaxCm360 = report.Curve[^1].Cm360;
+        OptimalCm360 = report.RecommendedCm360;
+        EditableDpi = (decimal)dpi;
+        ActiveCm360 = report.RecommendedCm360;
         BandText = $"plausible band {report.BandLoCm360:F1} – {report.BandHiCm360:F1} cm/360";
 
         int invalidCount = invalidReasons.Count(r => r != RoundInvalidReason.None);
@@ -86,17 +142,19 @@ public partial class ResultsViewModel : ViewModelBase
             ? $"{(partial ? "Session aborted early. " : "")}{(invalidCount > 0 ? $"{invalidCount} round(s) had insufficient samples (<100 ms)." : "")}"
             : "";
 
-        double span = report.Curve[^1].Cm360 - report.Curve[0].Cm360;
+        double span = MaxCm360 - MinCm360;
         if (span <= 0) span = 1;
-        Curve = report.Curve.Select(c => new GPPoint((c.Cm360 - report.Curve[0].Cm360) / span, c.Mean, c.Std)).ToArray();
-        Observations = report.Observations.Select(o => new ObservationPoint((o.Cm360 - report.Curve[0].Cm360) / span, o.YNorm)).ToArray();
+        Curve = report.Curve.Select(c => new GPPoint((c.Cm360 - MinCm360) / span, c.Mean, c.Std)).ToArray();
+        Observations = report.Observations.Select(o => new ObservationPoint((o.Cm360 - MinCm360) / span, o.YNorm)).ToArray();
 
         Rounds.Clear();
-        Rounds.Add(new RoundRow("Round", "Probe", "BSI", "Accuracy", "Jerk", "|E_flick|"));
+        Rounds.Add(new RoundRow(-1, 0, "Round", "Probe", "BSI", "Accuracy", "Jerk", "|E_flick|"));
         for (int i = 0; i < scores.Count; i++)
         {
             var s = scores[i];
             Rounds.Add(new RoundRow(
+                i,
+                s.Cm360,
                 $"#{i + 1}",
                 $"{s.Cm360:F1} cm",
                 $"{s.YNorm * 100:F1}",
@@ -105,18 +163,12 @@ public partial class ResultsViewModel : ViewModelBase
                 $"{s.Components.EFlickAbs:F2}"));
         }
 
-        RefreshProjections(report.RecommendedCm360);
-    }
-
-    private void UpdateRecommendedCm360(double newCm360)
-    {
-        HeroValueText = $"{newCm360:F1}";
-        HeroText = $"{newCm360:F1} cm/360";
-        RefreshProjections(newCm360);
+        RefreshProjections(ActiveCm360);
     }
 
     private void RefreshProjections(double cm360)
     {
+        double dpi = (double)Math.Clamp(EditableDpi, Constants.DpiMin, Constants.DpiMax);
         Projections.Clear();
         foreach (var (name, engine) in new (string, GameEngine)[]
                  {
@@ -126,7 +178,7 @@ public partial class ResultsViewModel : ViewModelBase
                      ("Call of Duty", GameEngine.CallOfDuty)
                  })
         {
-            Projections.Add(new ProjectionCard(name, GameProjection.ToGameSens(engine, _dpi, cm360), () => Clipboard));
+            Projections.Add(new ProjectionCard(name, GameProjection.ToGameSens(engine, dpi, cm360), () => Clipboard));
         }
     }
 }

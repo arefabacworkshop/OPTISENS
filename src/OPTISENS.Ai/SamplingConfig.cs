@@ -1,3 +1,4 @@
+using System.Buffers;
 using OPTISENS.Core.Config;
 
 namespace OPTISENS.Ai;
@@ -22,77 +23,85 @@ public static class Sampler
         int vocab = logits.Length;
         if (vocab == 0) throw new ArgumentException("empty logits");
 
-        var work = new float[vocab];
-        logits.CopyTo(work);
-
-        // (a) repetition penalty over ids U generated
-        if (Math.Abs(cfg.RepetitionPenalty - 1.0) > 1e-6)
+        float[] rented = ArrayPool<float>.Shared.Rent(vocab);
+        try
         {
-            float pen = (float)cfg.RepetitionPenalty;
-            for (int i = 0; i < allIds.Count; i++)
+            Span<float> work = rented.AsSpan(0, vocab);
+            logits.CopyTo(work);
+
+            // (a) repetition penalty over allIds
+            if (Math.Abs(cfg.RepetitionPenalty - 1.0) > 1e-6)
             {
-                int id = allIds[i];
-                if ((uint)id < (uint)vocab)
-                    work[id] = work[id] > 0 ? work[id] / pen : work[id] * pen;
+                float pen = (float)cfg.RepetitionPenalty;
+                for (int i = 0; i < allIds.Count; i++)
+                {
+                    int id = allIds[i];
+                    if ((uint)id < (uint)vocab)
+                        work[id] = work[id] > 0 ? work[id] / pen : work[id] * pen;
+                }
             }
-        }
 
-        // Greedy path (Temperature <= 0)
-        if (cfg.Temperature <= 0)
-        {
-            int bestId = 0;
-            float bestVal = work[0];
-            for (int i = 1; i < vocab; i++)
+            // Greedy path (Temperature <= 0)
+            if (cfg.Temperature <= 0)
             {
-                if (work[i] > bestVal) { bestVal = work[i]; bestId = i; }
+                int bestId = 0;
+                float bestVal = work[0];
+                for (int i = 1; i < vocab; i++)
+                {
+                    if (work[i] > bestVal) { bestVal = work[i]; bestId = i; }
+                }
+                return bestId;
             }
-            return bestId;
-        }
 
-        // (b) temperature divide
-        float invT = (float)(1.0 / cfg.Temperature);
-        for (int i = 0; i < vocab; i++) work[i] *= invT;
+            // (b) temperature divide
+            float invT = (float)(1.0 / cfg.Temperature);
+            for (int i = 0; i < vocab; i++) work[i] *= invT;
 
-        // (c) keep top-K
-        int k = Math.Clamp(cfg.TopK, 1, vocab);
-        var topIdx = new int[k];
-        var topVal = new float[k];
-        Array.Fill(topVal, float.NegativeInfinity);
+            // (c) keep top-K (stackalloc when k <= 128 -> zero heap allocations)
+            int k = Math.Clamp(cfg.TopK, 1, vocab);
+            Span<int> topIdx = k <= 128 ? stackalloc int[k] : new int[k];
+            Span<float> topVal = k <= 128 ? stackalloc float[k] : new float[k];
+            topVal.Fill(float.NegativeInfinity);
 
-        for (int i = 0; i < vocab; i++)
-        {
-            float v = work[i];
-            if (v <= topVal[k - 1]) continue;
-            int pos = k - 1;
-            while (pos > 0 && v > topVal[pos - 1])
+            for (int i = 0; i < vocab; i++)
             {
-                topVal[pos] = topVal[pos - 1];
-                topIdx[pos] = topIdx[pos - 1];
-                pos--;
+                float v = work[i];
+                if (v <= topVal[k - 1]) continue;
+                int pos = k - 1;
+                while (pos > 0 && v > topVal[pos - 1])
+                {
+                    topVal[pos] = topVal[pos - 1];
+                    topIdx[pos] = topIdx[pos - 1];
+                    pos--;
+                }
+                topVal[pos] = v;
+                topIdx[pos] = i;
             }
-            topVal[pos] = v;
-            topIdx[pos] = i;
-        }
 
-        // (d) softmax over top-K
-        float maxV = topVal[0];
-        double sum = 0;
-        var probs = new double[k];
-        for (int i = 0; i < k; i++)
-        {
-            probs[i] = Math.Exp(topVal[i] - maxV);
-            sum += probs[i];
-        }
+            // (d) softmax over top-K
+            float maxV = topVal[0];
+            double sum = 0;
+            Span<double> probs = k <= 128 ? stackalloc double[k] : new double[k];
+            for (int i = 0; i < k; i++)
+            {
+                probs[i] = Math.Exp(topVal[i] - maxV);
+                sum += probs[i];
+            }
 
-        // (e) sample
-        var rng = cfg.Seed.HasValue ? new Random(cfg.Seed.Value + generated.Count) : Random.Shared;
-        double r = rng.NextDouble() * sum;
-        double acc = 0;
-        for (int i = 0; i < k; i++)
-        {
-            acc += probs[i];
-            if (r <= acc) return topIdx[i];
+            // (e) sample
+            var rng = cfg.Seed.HasValue ? new Random(cfg.Seed.Value + generated.Count) : Random.Shared;
+            double r = rng.NextDouble() * sum;
+            double acc = 0;
+            for (int i = 0; i < k; i++)
+            {
+                acc += probs[i];
+                if (r <= acc) return topIdx[i];
+            }
+            return topIdx[0];
         }
-        return topIdx[0];
+        finally
+        {
+            ArrayPool<float>.Shared.Return(rented);
+        }
     }
 }

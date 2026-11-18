@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -33,8 +34,8 @@ public sealed partial class Lfm3Tokenizer : IDisposable
 
         var model = root.GetProperty("model");
         var vocabEl = model.GetProperty("vocab");
-        _vocab = new Dictionary<string, int>(StringComparer.Ordinal);
-        _idToToken = new Dictionary<int, string>();
+        _vocab = new Dictionary<string, int>(131_072, StringComparer.Ordinal);
+        _idToToken = new Dictionary<int, string>(131_072);
         foreach (var prop in vocabEl.EnumerateObject())
         {
             int id = prop.Value.GetInt32();
@@ -42,7 +43,7 @@ public sealed partial class Lfm3Tokenizer : IDisposable
             _idToToken[id] = prop.Name;
         }
 
-        _merges = new Dictionary<(string, string), int>();
+        _merges = new Dictionary<(string, string), int>(262_144);
         if (model.TryGetProperty("merges", out var mergesEl))
         {
             int rank = 0;
@@ -137,7 +138,7 @@ public sealed partial class Lfm3Tokenizer : IDisposable
             }
 
             var encoded = ApplyBpe(word);
-            if (_bpeCache.Count < 50_000)
+            if (_bpeCache.Count < 4_096)
                 _bpeCache[word] = encoded;
             ids.AddRange(encoded);
         }
@@ -195,8 +196,43 @@ public sealed partial class Lfm3Tokenizer : IDisposable
                     bytes.Add(b);
             }
         }
-        return Encoding.UTF8.GetString([.. bytes]);
+        return Encoding.UTF8.GetString(CollectionsMarshal.AsSpan(bytes));
     }
+
+    /// <summary>
+    /// Incremental (O(1)-per-token) streaming decoder: appends one token at a time and
+    /// returns only the newly completed text, instead of re-decoding the whole sequence.
+    /// A UTF-8 <see cref="Decoder"/> carries partial multi-byte characters across calls.
+    /// </summary>
+    public sealed class StreamDecoder
+    {
+        private readonly Lfm3Tokenizer _tokenizer;
+        private readonly Decoder _utf8 = Encoding.UTF8.GetDecoder();
+        private char[] _charBuf = new char[256];
+
+        internal StreamDecoder(Lfm3Tokenizer tokenizer) => _tokenizer = tokenizer;
+
+        public string Append(int id)
+        {
+            if (_tokenizer._specialIds.Contains(id)) return "";
+            if (!_tokenizer._idToToken.TryGetValue(id, out var tok) || tok.Length == 0) return "";
+
+            Span<byte> bytes = stackalloc byte[tok.Length];
+            int len = 0;
+            foreach (char ch in tok)
+            {
+                if (CharToByte.TryGetValue(ch, out byte b))
+                    bytes[len++] = b;
+            }
+
+            if (_charBuf.Length < len + 16)
+                _charBuf = new char[(len + 16) * 2];
+            int n = _utf8.GetChars(bytes[..len], _charBuf, flush: false);
+            return n == 0 ? "" : new string(_charBuf, 0, n);
+        }
+    }
+
+    public StreamDecoder CreateStreamDecoder() => new(this);
 
     public string DecodeDelta(IReadOnlyList<int> allIds, int alreadyShown)
     {

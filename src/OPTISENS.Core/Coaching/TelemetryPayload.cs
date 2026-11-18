@@ -62,7 +62,7 @@ public readonly record struct TelemetryPayload(
     [property: JsonPropertyName("result")] TelemetryResult Result,
     [property: JsonPropertyName("projections")] TelemetryProjections Projections);
 
-[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSourceGenerationOptions(WriteIndented = false)]
 [JsonSerializable(typeof(TelemetryPayload))]
 public partial class TelemetryJsonContext : JsonSerializerContext
 {

@@ -18,7 +18,21 @@ public partial class ShellView : Window
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape || DataContext is not ShellViewModel vm)
+        if (DataContext is not ShellViewModel vm)
+            return;
+
+        if (e.Key == Key.T &&
+            e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
+            e.KeyModifiers.HasFlag(KeyModifiers.Shift) &&
+            vm.CurrentPage is HardwareProfileViewModel or SessionViewModel)
+        {
+            e.Handled = true;
+            try { CursorHelper.UnlockAndShow(); } catch { /* ignore */ }
+            vm.SkipToSampleResults();
+            return;
+        }
+
+        if (e.Key != Key.Escape)
             return;
 
         switch (vm.CurrentPage)

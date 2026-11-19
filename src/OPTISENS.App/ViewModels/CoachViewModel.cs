@@ -29,13 +29,17 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
     private static readonly TimeSpan IdleUnloadDelay = TimeSpan.FromMinutes(5);
 
     private Lfm3Engine? _engine;
-    private CoachSession? _session;
+    private ICoachSession? _session;
     private ToolDispatcher? _dispatcher;
     private string? _modelDir;
     private bool _skipAi;
+    private AiProviderMode _aiMode = AiProviderMode.LocalLfm3;
     private InferenceBackendMode _backendMode = InferenceBackendMode.DirectMlGpu;
     private List<ChatMessage> _historySnapshot = [];
     private DispatcherTimer? _idleTimer;
+
+    [ObservableProperty] private bool _isLocalAiMode = true;
+    [ObservableProperty] private bool _isAiDisabled;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
@@ -59,6 +63,10 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
     public ObservableCollection<ChatLine> Transcript { get; } = new();
 
     public event Action<double>? Cm360Adjusted;
+    public event Action? ConfigureAiRequested;
+
+    [RelayCommand]
+    private void ConfigureAi() => ConfigureAiRequested?.Invoke();
 
     public async Task InitializeAsync(
         string modelDir,
@@ -72,22 +80,72 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
         if (skipAi)
         {
             _skipAi = true;
+            _aiMode = AiProviderMode.Disabled;
+            IsAiDisabled = true;
+            IsLocalAiMode = false;
             ProviderBadge = "DISABLED";
             StatusBanner = "AI disabled (--skip-ai).";
             return;
         }
 
+        var settings = AppSettingsStore.Load();
+        _aiMode = settings.AiMode;
         _modelDir = modelDir;
         _skipAi = false;
-        _backendMode = AppSettingsStore.Load().GetBackendMode();
 
+        if (_aiMode == AiProviderMode.Disabled)
+        {
+            IsAiDisabled = true;
+            IsLocalAiMode = false;
+            ProviderBadge = "OFF";
+            StatusBanner = "AI Coach is disabled. Enable Local LFM3 or an OpenAI-compatible API anytime.";
+            return;
+        }
+
+        IsAiDisabled = false;
         _dispatcher = new ToolDispatcher(initialCm360, dpi, boundsLo, boundsHi);
         _dispatcher.Cm360Changed += cm => Dispatcher.UIThread.Post(() => Cm360Adjusted?.Invoke(cm));
 
+        string introPrompt =
+            $"Here is the completed calibration telemetry:\n```json\n{telemetryJson}\n```\nIntroduce the results in <=60 words.";
+
+        if (_aiMode == AiProviderMode.OpenAiCompatible)
+        {
+            IsLocalAiMode = false;
+            if (string.IsNullOrWhiteSpace(settings.OpenAiBaseUrl) || string.IsNullOrWhiteSpace(settings.OpenAiModel))
+            {
+                StatusBanner = "OpenAI-compatible endpoint is not configured. Click AI Settings to set Base URL and Model.";
+                ProviderBadge = "API · UNCONFIGURED";
+                return;
+            }
+
+            try
+            {
+                var openAiSession = new OpenAiCoachSession(
+                    settings.OpenAiBaseUrl,
+                    settings.OpenAiApiKey,
+                    settings.OpenAiModel,
+                    _dispatcher,
+                    history: _historySnapshot);
+                openAiSession.ToolCallObserved += OnToolCallObserved;
+                _session = openAiSession;
+                ProviderBadge = $"API · {settings.OpenAiModel}";
+                StatusBanner = "";
+                await RunTurnAsync(introPrompt, showUserLine: false);
+            }
+            catch (Exception ex)
+            {
+                StatusBanner = $"OpenAI-compatible AI unavailable: {ex.Message}";
+                ProviderBadge = "API · ERROR";
+            }
+            return;
+        }
+
+        IsLocalAiMode = true;
+        _backendMode = settings.GetBackendMode();
+
         if (await EnsureEngineAsync())
         {
-            string introPrompt =
-                $"Here is the completed calibration telemetry:\n```json\n{telemetryJson}\n```\nIntroduce the results in <=60 words.";
             await RunTurnAsync(introPrompt, showUserLine: false);
         }
     }
@@ -200,6 +258,7 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
     private List<ChatMessage> CaptureAndDetach()
     {
         _historySnapshot = _session?.History.ToList() ?? _historySnapshot;
+        _session?.Dispose();
         _session = null;
         _engine?.Dispose();
         _engine = null;
@@ -273,17 +332,19 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
         finally
         {
             IsBusy = false;
-            RestartIdleTimer();
+            if (IsLocalAiMode) RestartIdleTimer();
         }
     }
 
     private bool CanSend() =>
-        !IsBusy && !IsLoading && !string.IsNullOrWhiteSpace(InputText) && (_session is not null || _modelDir is not null);
+        !IsAiDisabled && !IsBusy && !IsLoading && !string.IsNullOrWhiteSpace(InputText) &&
+        (_session is not null || (IsLocalAiMode && _modelDir is not null));
 
     public void Dispose()
     {
         _idleTimer?.Stop();
         _idleTimer = null;
+        _session?.Dispose();
         _session = null;
         _engine?.Dispose();
         _engine = null;

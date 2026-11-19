@@ -3,7 +3,7 @@ using OPTISENS.Core.Config;
 
 namespace OPTISENS.Ai;
 
-public sealed class CoachSession
+public sealed class CoachSession : ICoachSession
 {
     /// <summary>Cap: initial telemetry exchange + the most recent 6 exchanges.</summary>
     private const int MaxHistoryMessages = 14;
@@ -138,5 +138,10 @@ public sealed class CoachSession
             }
             _history.RemoveRange(cut, end - cut);
         }
+    }
+
+    public void Dispose()
+    {
+        // Engine lifecycle is owned by the caller (CoachViewModel).
     }
 }

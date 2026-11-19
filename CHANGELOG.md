@@ -2,6 +2,14 @@
 
 All notable changes to **OPTISENS** are documented in this file.
 
+## [0.5.6] - 2026-11-19
+
+### Added
+- **Optional First-Run AI Setup & OpenAI-Compatible Support:**
+  - Redesigned `SetupView` / `SetupViewModel` with data/assets folder selection, an explicit **Enable AI Coach Assistance** toggle (allowing instant zero-download usage without AI), and selectable provider cards for **Local AI (LFM3-1.7B)** or **OpenAI-Compatible API** (with `OpenAI`, `Ollama`, `LM Studio`, and `Custom` presets plus live **Test Connection**).
+  - Added `ICoachSession` and `OpenAiCoachSession` in `OPTISENS.Ai` with SSE token streaming and `adjust_sensitivity` / `set_specific_cm360` tool-calling support.
+  - Extended `AppSettings` (`HasCompletedSetup`, `AiMode`, `OpenAiBaseUrl`, `OpenAiApiKey`, `OpenAiModel`) and added **AI Settings** entry points in `HardwareProfileView` and `CoachTerminalView`.
+
 ## [0.5.5] - 2026-11-19
 
 ### Added

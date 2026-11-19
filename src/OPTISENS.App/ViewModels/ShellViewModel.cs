@@ -42,21 +42,58 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
                 RemediationBanner = null;
         };
 
-        if (!_skipAi && !AssetManifest.CheckAssets(_modelDir).IsReady)
+        var settings = AppSettingsStore.Load();
+        if (!settings.HasCompletedSetup &&
+            !string.IsNullOrWhiteSpace(settings.AssetsDirectory) &&
+            AssetManifest.CheckAssets(_modelDir).IsReady)
         {
-            var setupVm = new SetupViewModel(_modelDir);
-            setupVm.SetupCompleted += (resolvedDir, skip) =>
-            {
-                _modelDir = resolvedDir;
-                _skipAi = skip;
-                CurrentPage = CreateHardwareProfileVm();
-            };
-            _currentPage = setupVm;
+            settings = settings with { HasCompletedSetup = true, AiMode = AiProviderMode.LocalLfm3 };
+            AppSettingsStore.Save(settings);
+        }
+
+        bool needsSetup = !_skipAi &&
+            (!settings.HasCompletedSetup ||
+             (settings.AiMode == AiProviderMode.LocalLfm3 && !AssetManifest.CheckAssets(_modelDir).IsReady));
+
+        if (needsSetup)
+        {
+            _currentPage = CreateSetupVm(settings, isReconfigure: false, returnToResults: false);
         }
         else
         {
+            if (settings.AiMode == AiProviderMode.Disabled)
+                _skipAi = true;
             _currentPage = CreateHardwareProfileVm();
         }
+    }
+
+    private SetupViewModel CreateSetupVm(AppSettings settings, bool isReconfigure, bool returnToResults)
+    {
+        var setupVm = new SetupViewModel(_modelDir, settings, isReconfigure);
+        setupVm.SetupCompleted += (resolvedDir, skip) =>
+        {
+            _modelDir = resolvedDir;
+            _skipAi = skip;
+            if (returnToResults && _activeResults is not null)
+            {
+                _activeResults.Coach.Dispose();
+                _activeResults = null;
+            }
+            CurrentPage = CreateHardwareProfileVm();
+        };
+        setupVm.SetupCancelled += () =>
+        {
+            CurrentPage = returnToResults && _activeResults is not null
+                ? _activeResults
+                : CreateHardwareProfileVm();
+        };
+        return setupVm;
+    }
+
+    private void OpenAiSetup(bool returnToResults)
+    {
+        var settings = AppSettingsStore.Load();
+        CurrentPage = CreateSetupVm(settings, isReconfigure: true, returnToResults: returnToResults);
     }
 
     private HardwareProfileViewModel CreateHardwareProfileVm()
@@ -64,6 +101,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         _activeProfileVm?.Dispose();
         var hw = new HardwareProfileViewModel(_input);
         hw.ProfileReady += OnProfileReady;
+        hw.AiSettingsRequested += () => OpenAiSetup(returnToResults: false);
         _activeProfileVm = hw;
         return hw;
     }
@@ -107,6 +145,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         string json = TelemetryBuilder.ToJson(telemetry);
 
         var coachVm = new CoachViewModel();
+        coachVm.ConfigureAiRequested += () => OpenAiSetup(returnToResults: true);
         var resultsVm = new ResultsViewModel(coachVm);
         resultsVm.BackToMenuRequested += NavigateToProfile;
         resultsVm.RecalibrateRequested += () => OnProfileReady(profile);

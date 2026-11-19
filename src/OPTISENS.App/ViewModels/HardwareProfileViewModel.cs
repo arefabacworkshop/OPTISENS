@@ -57,6 +57,10 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
     }
 
     public event Action<HardwareProfile>? ProfileReady;
+    public event Action? AiSettingsRequested;
+
+    [RelayCommand]
+    private void OpenAiSettings() => AiSettingsRequested?.Invoke();
 
     [RelayCommand]
     private void ToggleInputTest()

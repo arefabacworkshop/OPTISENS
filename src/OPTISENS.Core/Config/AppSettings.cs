@@ -10,9 +10,23 @@ public enum InferenceBackendMode
     CpuEco
 }
 
+/// <summary>Selected AI Coach provider mode.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<AiProviderMode>))]
+public enum AiProviderMode
+{
+    Disabled,
+    LocalLfm3,
+    OpenAiCompatible
+}
+
 public sealed record AppSettings(
     string? AssetsDirectory = null,
-    string? InferenceBackend = null)
+    string? InferenceBackend = null,
+    bool HasCompletedSetup = false,
+    AiProviderMode AiMode = AiProviderMode.LocalLfm3,
+    string? OpenAiBaseUrl = null,
+    string? OpenAiApiKey = null,
+    string? OpenAiModel = null)
 {
     /// <summary>Resolves the effective backend mode, defaulting by platform when unset.</summary>
     public InferenceBackendMode GetBackendMode() =>

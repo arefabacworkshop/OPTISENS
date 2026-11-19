@@ -93,7 +93,11 @@
               <Button Content="Back" Command="{Binding BackCommand}"
                       IsVisible="{Binding !IsStandalonePreview}"
                       Padding="14,10"/>
+              <Button Content="{Binding NextButtonText}" Command="{Binding NextStepCommand}"
+                      IsVisible="{Binding ShowNextButton}"
+                      Classes="cta" Padding="20,10"/>
               <Button Content="{Binding PrimaryCtaText}" Command="{Binding ConfirmGuideCommand}"
+                      IsVisible="{Binding CanStartCalibration}"
                       Classes="cta" Padding="20,10"/>
             </StackPanel>
           </Grid>

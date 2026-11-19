@@ -2,6 +2,12 @@
 
 All notable changes to **OPTISENS** are documented in this file.
 
+## [0.5.8] - 2026-11-19
+
+### Changed
+- **Calibration Test Guide Progression (`TestGuideView` / `TestGuideViewModel`):**
+  - Replaced the immediate `Start Calibration` button on steps 1 and 2 with progressive `Next: Flick Shots →` and `Next: Micro-Dots →` buttons so users step through all 3 test demos before `Start Calibration` appears on the final step.
+
 ## [0.5.7] - 2026-11-19
 
 ### Added

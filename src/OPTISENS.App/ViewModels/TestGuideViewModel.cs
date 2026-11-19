@@ -16,6 +16,9 @@ public partial class TestGuideViewModel : ViewModelBase
         nameof(IsStep0),
         nameof(IsStep1),
         nameof(IsStep2),
+        nameof(CanStartCalibration),
+        nameof(ShowNextButton),
+        nameof(NextButtonText),
         nameof(StepTitle),
         nameof(ActionRuleBadge),
         nameof(ActionRuleBrush),
@@ -45,6 +48,15 @@ public partial class TestGuideViewModel : ViewModelBase
     public bool IsStep0 => SelectedStepIndex == 0;
     public bool IsStep1 => SelectedStepIndex == 1;
     public bool IsStep2 => SelectedStepIndex == 2;
+    public bool CanStartCalibration => IsStandalonePreview || SelectedStepIndex == 2;
+    public bool ShowNextButton => !IsStandalonePreview && SelectedStepIndex < 2;
+
+    public string NextButtonText => SelectedStepIndex switch
+    {
+        0 => "Next: Flick Shots →",
+        1 => "Next: Micro-Dots →",
+        _ => "Next →"
+    };
 
     public string StepTitle => SelectedStepIndex switch
     {
@@ -90,10 +102,22 @@ public partial class TestGuideViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void NextStep() => SelectedStepIndex = (SelectedStepIndex + 1) % 3;
+    private void NextStep()
+    {
+        if (SelectedStepIndex < 2)
+            SelectedStepIndex++;
+        else if (IsStandalonePreview)
+            SelectedStepIndex = 0;
+    }
 
     [RelayCommand]
-    private void PrevStep() => SelectedStepIndex = (SelectedStepIndex + 2) % 3;
+    private void PrevStep()
+    {
+        if (SelectedStepIndex > 0)
+            SelectedStepIndex--;
+        else if (IsStandalonePreview)
+            SelectedStepIndex = 2;
+    }
 
     [RelayCommand]
     private void ConfirmGuide()

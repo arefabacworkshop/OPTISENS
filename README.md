@@ -7,8 +7,14 @@
     <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet" alt=".NET 10" />
     <img src="https://img.shields.io/badge/UI-Avalonia%2011-8B5CF6?style=flat-square" alt="Avalonia 11" />
     <img src="https://img.shields.io/badge/Renderer-OpenGL%203.3-5586A4?style=flat-square&logo=opengl" alt="OpenGL 3.3" />
-    <img src="https://img.shields.io/badge/AI%20Coach-LFM3--1.7B%20ONNX-00E5FF?style=flat-square" alt="LFM3-1.7B ONNX" />
+    <img src="https://img.shields.io/badge/AI%20Coach-Optional%20(LFM3%20%7C%20OpenAI%20API)-00E5FF?style=flat-square" alt="Optional AI Coach" />
     <img src="https://img.shields.io/badge/Platforms-Windows%20%7C%20Linux%20%7C%20macOS-1F2937?style=flat-square" alt="Windows Linux macOS" />
+  </p>
+
+  <p>
+    <a href="https://github.com/arefabacworkshop/OPTISENS/releases/tag/OPTISENSE">
+      <img src="https://img.shields.io/badge/Download%20for%20Windows-.msi%20Installer-00E5FF?style=for-the-badge&logo=windows&logoColor=090A0D" alt="Download for Windows (.msi)" />
+    </a>
   </p>
 
   <p>
@@ -24,7 +30,7 @@
 
 ---
 
-**OPTISENS** scientifically finds your optimal physical mouse sensitivity (`cm/360`) using raw OS mouse telemetry, real-time 3D aiming scenarios, biomechanical kinematic scoring, Gaussian-process Bayesian optimization, and an offline local AI coach.
+**OPTISENS** scientifically finds your optimal physical mouse sensitivity (`cm/360`) using raw OS mouse telemetry, real-time 3D aiming scenarios, biomechanical kinematic scoring, Gaussian-process Bayesian optimization, and an **optional** AI coach (offline local `LFM3-1.7B` or any OpenAI-compatible API).
 
 Instead of guessing numbers or copying pro settings, OPTISENS measures how smoothly and accurately *your* hand moves across your mousepad—then recommends your ideal `cm/360` and converts it into exact in-game values for **CS2 / Source**, **Valorant / Unreal**, **Overwatch 2**, and **Call of Duty**.
 
@@ -39,22 +45,27 @@ Instead of guessing numbers or copying pro settings, OPTISENS measures how smoot
 | **3D OpenGL 3.3 Aim Scenarios** | Tests three core aiming primitives per round: **Smooth Tracking** (15s), **Reactive Flick** (15s), and **Precision Micro-Dot** (10s). |
 | **Biomechanical Skill Index (BSI)** | Computes normalized smoothness (jerk), flick overshoot/undershoot ($E_{\text{flick}}$), micro-adjustment settling time ($T_{\text{adjust}}$), and accuracy. |
 | **Bayesian Sensitivity Search** | Uses a Matérn 5/2 Gaussian Process with Expected Improvement (EI) and fatigue modeling to converge in up to 6 rounds. |
-| **Offline AI Coach (`LFM3-1.7B-ONNX`)** | Local ONNX Runtime LLM coach with tool-calling to explain your telemetry, convert `cm/360` to game sensitivities, and fine-tune feel. |
-| **First-Run Setup & Asset Bootstrapper** | Apple-inspired onboarding UI that checks existing assets, lets you pick a custom or default asset folder, and downloads/verifies the AI model with live speed & ETA. |
+| **Optional AI Coach (`LFM3-1.7B` or OpenAI API)** | Use OPTISENS 100% without AI, download the offline `LFM3-1.7B-ONNX` model, or connect any OpenAI-compatible endpoint (OpenAI, OpenRouter, Ollama, LM Studio) with streaming & tool-calling. |
+| **First-Run Setup & Asset Bootstrapper** | Choose your data folder, toggle AI Coach on or off, test OpenAI-compatible endpoints live, or download/verify local model files with live speed & ETA. |
+| **Animated Calibration Test Guide** | Native 60fps looping visual demos for **Smooth Tracking**, **Reflex Flicks**, and **Micro-Dots** plus in-session HUD action cues (`NO CLICK` vs `LEFT-CLICK`). |
 
 ---
 
 ## Installation
 
-### Windows (`.exe` Setup Wizard)
+### Windows (Prebuilt `.msi` Installer — Recommended)
 
-Build or run the Inno Setup installer (`OPTISENSSetup-0.5.8-win-x64.exe`):
+Download the latest Windows `.msi` installer from the **[GitHub Releases page](https://github.com/arefabacworkshop/OPTISENS/releases/tag/OPTISENSE)** and run it—no `.NET` runtime installation required.
+
+To build the Windows installers from source:
 
 ```powershell
+# Build .msi installer (WiX v5) -> dist/installer/OPTISENS-0.5.8-win-x64.msi
+powershell -ExecutionPolicy Bypass -File packaging/windows/build-msi.ps1
+
+# Or build Inno Setup .exe wizard -> dist/installer/OPTISENSSetup-0.5.8-win-x64.exe
 powershell -ExecutionPolicy Bypass -File packaging/windows/build-setup.ps1
 ```
-
-This publishes a self-contained single-file `OPTISENS.App.exe` and compiles a familiar Windows installer wizard with desktop & Start Menu shortcuts. On first launch, OPTISENS opens the Setup screen to download or locate the AI Coach model.
 
 ### Linux & macOS (One-Command Terminal Installer)
 
@@ -87,10 +98,11 @@ dotnet run --project src/OPTISENS.App -- --dev
 
 ### 3. Calibration Flow
 
-1. **First-Run Setup** — Choose where to store the AI Coach model (`models/LFM3-1.7B-ONNX` in your install folder by default, or any custom folder), then click **Continue** (or **Skip AI Coach for now**). Subsequent launches detect existing assets and skip straight into the app.
-2. **Hardware Profile** — Enter your **Mouse DPI**, **Usable Mousepad Width (cm)**, and **Grip Style**.
-3. **Calibration Session** — Complete up to 6 adaptive rounds (Tracking → Flick → Micro-Dot with short rest intervals). OPTISENS locks the cursor and probes candidate `cm/360` values chosen by Bayesian optimization.
-4. **Results & AI Coach** — Inspect your recommended `cm/360`, confidence band, Gaussian Process curve, per-round kinematic table, and chat with the local AI Coach.
+1. **First-Run Setup** — Pick your data/assets folder, then choose whether to **enable AI Coach** or continue **without AI**. If enabled, either download **Local AI (`LFM3-1.7B-ONNX`)** or connect an **OpenAI-compatible API** (`OpenAI`, `Ollama`, `LM Studio`, or custom URL). You can change this anytime via **AI Settings**.
+2. **Hardware Profile** — Enter your **Mouse DPI**, **Usable Mousepad Width (cm)**, and **Grip Style** (with an optional live DPI & raw-input swipe check).
+3. **Animated Test Guide** — Before your first calibration (and anytime via **How Tests Work**), step through 60fps visual demos of **Smooth Tracking** (no clicking), **Reflex Flicks** (snap + left-click), and **Micro-Dots** (micro-aim + left-click).
+4. **Calibration Session** — Complete up to 6 adaptive rounds (Tracking → Flick → Micro-Dot with short rest intervals). OPTISENS locks the cursor and probes candidate `cm/360` values chosen by Bayesian optimization.
+5. **Results & AI Coach** — Inspect your recommended `cm/360`, confidence band, Gaussian Process curve, per-round kinematic table, and (if enabled) chat with the AI Coach.
 
 ---
 
@@ -115,18 +127,18 @@ flowchart LR
     BSI --> BO["BayesianOptimizer\n(Matérn 5/2 GP + EI)"]
     BO --> Session
     BO --> Results["Results Dashboard\n& Game Projections"]
-    Results --> Coach["Local AI Coach\n(LFM3-1.7B ONNX + Tools)"]
+    Results --> Coach["Optional AI Coach\n(LFM3-1.7B or OpenAI API + Tools)"]
 ```
 
 | Module | Responsibility |
 | :--- | :--- |
 | `OPTISENS.Core` | Units (`PhysicalTurnDistance`), raw input ring buffer, kinematic feature extraction, BSI scorer, Matérn 5/2 GP, Expected Improvement optimizer, round state machine, game sensitivity projection, `AppSettings` & `AssetManifest`. |
-| `OPTISENS.Ai` | `Lfm3Engine` (ONNX Runtime GenAI), `Lfm3Tokenizer`, `Lfm3ChatTemplate`, `ToolCallParser`, `ToolDispatcher`, and `CoachSession`. |
+| `OPTISENS.Ai` | `ICoachSession`, `Lfm3Engine` (ONNX Runtime GenAI), `OpenAiCoachSession` (SSE streaming + tool calls), `Lfm3Tokenizer`, `Lfm3ChatTemplate`, `ToolCallParser`, `ToolDispatcher`, and `CoachSession`. |
 | `OPTISENS.Input.Windows` | Win32 `WM_INPUT` raw mouse capture (`RIDEV_INPUTSINK` / message window). |
 | `OPTISENS.Input.Linux` | Direct `/dev/input/event*` `evdev` reader with `udev` permission diagnostics. |
 | `OPTISENS.Input.Mac` | `IOKit` `IOHIDManager` raw HID mouse delta capture. |
 | `OPTISENS.Platform` | Cross-platform cursor lock, unlock, and center helpers. |
-| `OPTISENS.App` | Avalonia 11 desktop UI, Silk.NET OpenGL 3.3 3D viewport, GP curve plot control, and First-Run Setup bootstrapper. |
+| `OPTISENS.App` | Avalonia 11 desktop UI, Silk.NET OpenGL 3.3 3D viewport, GP curve plot control, 60fps `TestGuidePreviewControl`, and First-Run Setup bootstrapper. |
 
 ---
 

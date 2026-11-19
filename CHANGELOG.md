@@ -2,6 +2,14 @@
 
 All notable changes to **OPTISENS** are documented in this file.
 
+## [0.5.7] - 2026-11-19
+
+### Added
+- **Animated Calibration Test Guide (`TestGuideView` / `TestGuidePreviewControl`):**
+  - Added a 60fps looping animated demonstration for all 3 calibration blocks (**1. Smooth Tracking**, **2. Flick Shots**, **3. Micro-Dots**), automatically shown before a user's first calibration (controlled by `AppSettings.HasSeenTestGuide`) and accessible anytime via **How Tests Work** in `HardwareProfileView`.
+- **In-Session Action Cues (`RoundController`):**
+  - Updated HUD phase labels to explicitly show required input (`TRACKING (NO CLICK)`, `FLICK + LEFT-CLICK`, `MICRO-DOT + LEFT-CLICK`).
+
 ## [0.5.6] - 2026-11-19
 
 ### Added

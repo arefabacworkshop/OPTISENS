@@ -26,7 +26,8 @@ public sealed record AppSettings(
     AiProviderMode AiMode = AiProviderMode.LocalLfm3,
     string? OpenAiBaseUrl = null,
     string? OpenAiApiKey = null,
-    string? OpenAiModel = null)
+    string? OpenAiModel = null,
+    bool HasSeenTestGuide = false)
 {
     /// <summary>Resolves the effective backend mode, defaulting by platform when unset.</summary>
     public InferenceBackendMode GetBackendMode() =>

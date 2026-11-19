@@ -79,6 +79,12 @@
             <TextBlock Text="AI Settings" Classes="mono-tabular"
                        FontSize="11" Foreground="#7C9FFF"/>
           </Button>
+          <Button Grid.Column="1" Command="{Binding OpenTestGuideCommand}"
+                  Background="Transparent" BorderThickness="0"
+                  HorizontalAlignment="Center" Padding="4,2">
+            <TextBlock Text="How Tests Work" Classes="mono-tabular"
+                       FontSize="11" Foreground="#00F0FF"/>
+          </Button>
           <Button Grid.Column="2" Command="{Binding ExitAppCommand}"
                   Background="Transparent" BorderThickness="0"
                   HorizontalAlignment="Right" Padding="4,2">

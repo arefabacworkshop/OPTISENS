@@ -102,8 +102,24 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         var hw = new HardwareProfileViewModel(_input);
         hw.ProfileReady += OnProfileReady;
         hw.AiSettingsRequested += () => OpenAiSetup(returnToResults: false);
+        hw.TestGuideRequested += () => OpenTestGuide(pendingProfile: null);
         _activeProfileVm = hw;
         return hw;
+    }
+
+    private void OpenTestGuide(HardwareProfile? pendingProfile)
+    {
+        bool isStandalone = pendingProfile is null;
+        var guideVm = new TestGuideViewModel(isStandalonePreview: isStandalone);
+        guideVm.GuideCompleted += () =>
+        {
+            if (pendingProfile is { } profile)
+                StartCalibrationSession(profile);
+            else
+                CurrentPage = CreateHardwareProfileVm();
+        };
+        guideVm.GuideCancelled += () => CurrentPage = CreateHardwareProfileVm();
+        CurrentPage = guideVm;
     }
 
     private void OnProfileReady(HardwareProfile profile)
@@ -111,6 +127,17 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         _activeProfileVm?.Dispose();
         _activeProfileVm = null;
 
+        if (!AppSettingsStore.Load().HasSeenTestGuide)
+        {
+            OpenTestGuide(profile);
+            return;
+        }
+
+        StartCalibrationSession(profile);
+    }
+
+    private void StartCalibrationSession(HardwareProfile profile)
+    {
         // Always release any previous AI Coach / InferenceSession before starting a new calibration
         _activeResults?.Coach.Dispose();
         _activeResults = null;

@@ -37,7 +37,8 @@ public class AppSettingsTests
                 AiMode: AiProviderMode.OpenAiCompatible,
                 OpenAiBaseUrl: "http://localhost:11434/v1",
                 OpenAiApiKey: "test-key",
-                OpenAiModel: "llama3.2");
+                OpenAiModel: "llama3.2",
+                HasSeenTestGuide: true);
             AppSettingsStore.Save(expected, cfgPath);
 
             var actual = AppSettingsStore.Load(cfgPath);
@@ -46,12 +47,14 @@ public class AppSettingsTests
             Assert.Equal("http://localhost:11434/v1", actual.OpenAiBaseUrl);
             Assert.Equal("test-key", actual.OpenAiApiKey);
             Assert.Equal("llama3.2", actual.OpenAiModel);
+            Assert.True(actual.HasSeenTestGuide);
 
             // Legacy JSON without new fields should deserialize with safe defaults
             File.WriteAllText(cfgPath, """{"AssetsDirectory":"C:\\Models"}""");
             var legacy = AppSettingsStore.Load(cfgPath);
             Assert.Equal(@"C:\Models", legacy.AssetsDirectory);
             Assert.False(legacy.HasCompletedSetup);
+            Assert.False(legacy.HasSeenTestGuide);
             Assert.Equal(AiProviderMode.LocalLfm3, legacy.AiMode);
         }
         finally

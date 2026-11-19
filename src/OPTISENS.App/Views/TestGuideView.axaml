@@ -1,0 +1,105 @@
+<UserControl x:Class="OPTISENS.App.Views.TestGuideView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OPTISENS.App.ViewModels"
+             xmlns:controls="using:OPTISENS.App.Controls"
+             x:DataType="vm:TestGuideViewModel"
+             x:CompileBindings="True">
+  <UserControl.Styles>
+    <Style Selector="Button.step-tab">
+      <Setter Property="Background" Value="#10131A"/>
+      <Setter Property="BorderBrush" Value="#242832"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="12,8"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="Foreground" Value="#8E97A6"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+    <Style Selector="Button.step-tab.active">
+      <Setter Property="Background" Value="#142033"/>
+      <Setter Property="BorderBrush" Value="#00F0FF"/>
+      <Setter Property="Foreground" Value="#F2F5FA"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Button.step-tab.active /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#142033"/>
+      <Setter Property="BorderBrush" Value="#00F0FF"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Background="#090A0D">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <Border MaxWidth="660" HorizontalAlignment="Center" VerticalAlignment="Center"
+              Margin="24" CornerRadius="16" Padding="28"
+              Background="#12151B" BorderBrush="#242832" BorderThickness="1"
+              BoxShadow="0 20 56 0 #80000000">
+        <StackPanel Spacing="16">
+
+          <!-- Header -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="4">
+              <TextBlock Text="HOW THE CALIBRATION TESTS WORK" Classes="eyebrow" Foreground="#00F0FF"/>
+              <TextBlock Text="{Binding StepTitle}" FontSize="22" FontWeight="SemiBold" Foreground="#F4F6F8"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Button Content="←" Command="{Binding PrevStepCommand}" Padding="10,6" FontSize="12"/>
+              <Button Content="→" Command="{Binding NextStepCommand}" Padding="10,6" FontSize="12"/>
+            </StackPanel>
+          </Grid>
+
+          <!-- 3 Test Tabs -->
+          <Grid ColumnDefinitions="*,8,*,8,*">
+            <Button Grid.Column="0" Content="1. Smooth Tracking"
+                    Command="{Binding SelectStepCommand}" CommandParameter="0"
+                    Classes="step-tab" Classes.active="{Binding IsStep0}"/>
+            <Button Grid.Column="2" Content="2. Flick Shots"
+                    Command="{Binding SelectStepCommand}" CommandParameter="1"
+                    Classes="step-tab" Classes.active="{Binding IsStep1}"/>
+            <Button Grid.Column="4" Content="3. Micro-Dots"
+                    Command="{Binding SelectStepCommand}" CommandParameter="2"
+                    Classes="step-tab" Classes.active="{Binding IsStep2}"/>
+          </Grid>
+
+          <!-- Live 60fps Animated Demo Viewport -->
+          <Border CornerRadius="10" BorderBrush="#242832" BorderThickness="1" ClipToBounds="True">
+            <controls:TestGuidePreviewControl TestMode="{Binding CurrentMode}" Height="290"/>
+          </Border>
+
+          <!-- Action Rule & Explanation -->
+          <Border Background="#0E1117" BorderBrush="#242832" BorderThickness="1"
+                  CornerRadius="10" Padding="14,12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="{Binding ActionRuleBadge}" Classes="mono-tabular"
+                         FontSize="11.5" FontWeight="Bold" Foreground="{Binding ActionRuleBrush}"/>
+              <TextBlock Text="{Binding StepDescription}" FontSize="13.5" LineHeight="20"
+                         Foreground="#E6EAF0" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding MeasurementNote}" FontSize="11.5"
+                         Foreground="#8E97A6" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Footer Controls -->
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <CheckBox Grid.Column="0" IsChecked="{Binding DontShowAutomatically}"
+                      IsVisible="{Binding !IsStandalonePreview}"
+                      VerticalAlignment="Center">
+              <TextBlock Text="Don't show automatically before future calibrations"
+                         FontSize="12" Foreground="#8E97A6"/>
+            </CheckBox>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+              <Button Content="Back" Command="{Binding BackCommand}"
+                      IsVisible="{Binding !IsStandalonePreview}"
+                      Padding="14,10"/>
+              <Button Content="{Binding PrimaryCtaText}" Command="{Binding ConfirmGuideCommand}"
+                      Classes="cta" Padding="20,10"/>
+            </StackPanel>
+          </Grid>
+
+        </StackPanel>
+      </Border>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

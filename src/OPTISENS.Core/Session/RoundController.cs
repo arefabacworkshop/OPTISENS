@@ -393,17 +393,17 @@ public sealed class RoundController
             RoundPhase.RoundIntro => (
                 $"GET READY ({Math.Max(1, (int)Math.Ceiling(Constants.RoundIntroS - elapsed))}s)",
                 Math.Clamp(elapsed / Constants.RoundIntroS, 0, 1),
-                "Center your mouse on the pad — Phase 1: Smooth Tracking"),
+                "Center your mouse on the pad — Phase 1: Follow sphere (NO CLICK)"),
             RoundPhase.BlockTracking => (
-                "PHASE 1/3 · REACTIVE TRACKING",
+                "PHASE 1/3 · TRACKING (NO CLICK)",
                 Math.Clamp(elapsed / Constants.BlockTrackingS, 0, 1),
                 $"Lock: {_scenario?.LiveTrackingAccuracy * 100:F0}%   ({Math.Max(0, Constants.BlockTrackingS - elapsed):F1}s)"),
             RoundPhase.BlockFlick => (
-                "PHASE 2/3 · REFLEX FLICKS",
+                "PHASE 2/3 · FLICK + LEFT-CLICK",
                 Math.Clamp(elapsed / Constants.BlockFlickS, 0, 1),
                 $"Hits: {_scenario?.FlickAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.FlickAttempts.Count ?? 0}   ({Math.Max(0, Constants.BlockFlickS - elapsed):F1}s)"),
             RoundPhase.BlockDot => (
-                "PHASE 3/3 · MICRO-CLUSTER PRECISION",
+                "PHASE 3/3 · MICRO-DOT + LEFT-CLICK",
                 Math.Clamp(elapsed / Constants.BlockDotS, 0, 1),
                 $"Hits: {_scenario?.DotAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.DotAttempts.Count ?? 0}   ({Math.Max(0, Constants.BlockDotS - elapsed):F1}s)"),
             RoundPhase.Rest => (

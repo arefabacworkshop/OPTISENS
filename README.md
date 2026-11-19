@@ -1,7 +1,6 @@
 <div align="center">
-  <img src="src/OPTISENS.App/Assets/logo-512.png" alt="OPTISENS Logo" width="120" height="120" />
-  <h1>OPTISENS</h1>
-  <p><strong>AI-assisted open-source sensitivity finder</strong></p>
+  <img src="docs/assets/banner.jpg" alt="OPTISENS — AI-Assisted Mouse Sensitivity Finder" width="840" />
+  <br /><br />
 
   <p>
     <img src="https://img.shields.io/badge/Version-0.5.8-00E5FF?style=flat-square" alt="Version 0.5.8" />

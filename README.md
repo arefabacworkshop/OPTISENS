@@ -57,6 +57,8 @@ Instead of guessing numbers or copying pro settings, OPTISENS measures how smoot
 
 Download the latest Windows `.msi` installer from the **[GitHub Releases page](https://github.com/arefabacworkshop/OPTISENS/releases/tag/OPTISENSE)** and run it—no `.NET` runtime installation required.
 
+> **Note (Windows SmartScreen):** Because the installer is open-source and not yet code-signed with a commercial certificate, Windows may show *"Windows protected your PC"*. Click **More info → Run anyway** to install.
+
 To build the Windows installers from source:
 
 ```powershell

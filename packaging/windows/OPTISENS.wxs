@@ -1,0 +1,48 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="OPTISENS"
+           Manufacturer="OPTISENS"
+           Version="$(var.Version)"
+           UpgradeCode="8E0F7A12-BFB3-4FE8-B9A5-48FD50A15A9A"
+           Scope="perUser">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of OPTISENS is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon.ico" SourceFile="src\OPTISENS.App\Assets\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="OPTISENS" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="OPTISENS" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="OPTISENS" Level="1">
+      <Component Id="MainExecutable" Directory="INSTALLFOLDER" Guid="*">
+        <File Id="OptisensExe"
+              Source="dist\win-x64\OPTISENS.App.exe"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">
+        <Shortcut Id="OptisensStartShortcut"
+                  Name="OPTISENS"
+                  Description="OPTISENS Mouse Sensitivity Finder"
+                  Target="[INSTALLFOLDER]OPTISENS.App.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon.ico" />
+        <RemoveFolder Id="CleanStartMenuFolder" On="uninstall" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\OPTISENS"
+                       Name="installed"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </Feature>
+  </Package>
+</Wix>

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -84,11 +85,29 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
     {
         _input = input;
         _selectedGrip = GripStyles[0];
+
+        var settings = AppSettingsStore.Load();
+        Dpi = (decimal)Math.Clamp(settings.LastDpi, Constants.DpiMin, Constants.DpiMax);
+        PadWidthCm = (decimal)Math.Clamp(settings.LastPadWidthCm, Constants.PadWidthMinCm, 120.0);
+        if (Enum.TryParse<GripStyle>(settings.LastGrip, ignoreCase: true, out var savedGrip))
+            SelectedGrip = GripStyles.First(g => g.Value == savedGrip);
+        RecentSessions = new ObservableCollection<CalibrationHistoryEntry>(SessionHistoryStore.LoadAll().Take(5));
     }
+
+    public ObservableCollection<CalibrationHistoryEntry> RecentSessions { get; }
+    public IEnumerable<CalibrationHistoryEntry> RecentPreview => RecentSessions.Take(3);
+    public bool HasHistory => RecentSessions.Count > 0;
+    public CalibrationHistoryEntry? LatestSession => RecentSessions.FirstOrDefault();
+    public string LatestSessionSummary => LatestSession is { } latest
+        ? $"{latest.RecommendedCm360:F1} cm/360 · {latest.Dpi:F0} DPI"
+        : "";
 
     public event Action<HardwareProfile>? ProfileReady;
     public event Action? AiSettingsRequested;
     public event Action? TestGuideRequested;
+    public event Action<CalibrationHistoryEntry>? OpenHistoryEntryRequested;
+    public event Action<HardwareProfile>? WarmupRequested;
+    public event Action? ArenaSettingsRequested;
 
     [RelayCommand]
     private void OpenAiSettings() => AiSettingsRequested?.Invoke();
@@ -173,19 +192,73 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void StartCalibration()
     {
+        if (!TryValidateProfile()) return;
+        StopInputTest();
+        SaveLastProfile();
+        ProfileReady?.Invoke(new HardwareProfile((double)Dpi, (double)PadWidthCm, SelectedGrip.Value));
+    }
+
+    [RelayCommand]
+    private void StartWarmup()
+    {
+        if (!TryValidateProfile()) return;
+        StopInputTest();
+        SaveLastProfile();
+        WarmupRequested?.Invoke(new HardwareProfile((double)Dpi, (double)PadWidthCm, SelectedGrip.Value));
+    }
+
+    [RelayCommand]
+    private void OpenLatestResults()
+    {
+        if (LatestSession is { } e) OpenHistoryEntryRequested?.Invoke(e);
+    }
+
+    [RelayCommand]
+    private void OpenHistoryEntry(CalibrationHistoryEntry entry) => OpenHistoryEntryRequested?.Invoke(entry);
+
+    [RelayCommand]
+    private void DeleteHistoryEntry(CalibrationHistoryEntry entry)
+    {
+        SessionHistoryStore.Delete(entry.Id);
+        RecentSessions.Remove(entry);
+        OnPropertyChanged(nameof(RecentPreview));
+        OnPropertyChanged(nameof(HasHistory));
+        OnPropertyChanged(nameof(LatestSession));
+        OnPropertyChanged(nameof(LatestSessionSummary));
+    }
+
+    [RelayCommand]
+    private void OpenArenaSettings() => ArenaSettingsRequested?.Invoke();
+
+    private bool TryValidateProfile()
+    {
         ValidationError = null;
         if (Dpi < Constants.DpiMin || Dpi > Constants.DpiMax)
         {
             ValidationError = $"DPI must be between {Constants.DpiMin} and {Constants.DpiMax}.";
-            return;
+            return false;
         }
         if (PadWidthCm < (decimal)Constants.PadWidthMinCm)
         {
             ValidationError = $"Mousepad width must be at least {Constants.PadWidthMinCm} cm.";
-            return;
+            return false;
         }
-        StopInputTest();
-        ProfileReady?.Invoke(new HardwareProfile((double)Dpi, (double)PadWidthCm, SelectedGrip.Value));
+        return true;
+    }
+
+    private void SaveLastProfile()
+    {
+        try
+        {
+            var settings = AppSettingsStore.Load();
+            AppSettingsStore.Save(settings with
+            {
+                LastDpi = (double)Dpi,
+                LastPadWidthCm = (double)PadWidthCm,
+                LastGrip = SelectedGrip.Value.ToString()
+            });
+        }
+        catch { /* best effort persistence */ }
     }
 
     [RelayCommand]

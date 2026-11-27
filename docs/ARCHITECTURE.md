@@ -15,36 +15,31 @@ OPTISENS.sln
 │   ├── OPTISENS.Input.Windows/  # Win32 WM_INPUT raw mouse capture
 │   ├── OPTISENS.Input.Linux/    # Linux evdev (/dev/input/event*) capture
 │   ├── OPTISENS.Input.Mac/      # macOS IOKit IOHIDManager capture
-│   └── OPTISENS.App/            # Avalonia 11 UI, OpenGL 3.3 renderer, Setup & Results views
+│   └── OPTISENS.App/            # Avalonia 12 UI, OpenGL 3.3 renderer, Arena & Results views
 └── tests/
-    ├── OPTISENS.Core.Tests/     # 28 unit & integration tests (kinematics, BSI, GP, BO, session)
-    └── OPTISENS.Ai.Tests/       # 8 unit tests (chat template, telemetry, tool parser & dispatcher)
+    ├── OPTISENS.Core.Tests/     # 41 unit & integration tests (kinematics, BSI, GP, BO, projection, history)
+    ├── OPTISENS.Ai.Tests/       # 16 unit tests (chat template, telemetry, tool parser & dispatcher)
+    └── OPTISENS.App.Tests/      # 9 unit tests (Results, Setup & Shell ViewModels)
 ```
 
 ---
 
-## 1. Physical Units & Game Projection
+## 1. Physical Units, 36+ Game Catalog & ADS Projection
 
 OPTISENS operates exclusively in **`cm/360`** (centimeters of physical mouse travel required for a full 360° yaw rotation):
 
 $$\text{degPerCount} = \frac{360 \times 2.54}{\text{DPI} \times \text{cm/360}}$$
 
-In `GameProjection.cs`, `cm/360` converts cleanly to and from engine sensitivity units using each engine's standard yaw constant ($\text{yaw}$ in degrees/count at sensitivity `1.0`):
-
-| Engine (`GameEngine`) | Yaw Constant | Conversion Formula |
-| :--- | :--- | :--- |
-| `Cs2Source` (CS2 / Source) | `0.022` | $\text{sens} = \dfrac{360 \times 2.54}{\text{DPI} \times \text{cm/360} \times \text{yaw}}$ |
-| `ValorantUnreal` (Valorant / Unreal) | `0.070` | $\text{sens} = \dfrac{360 \times 2.54}{\text{DPI} \times \text{cm/360} \times \text{yaw}}$ |
-| `Overwatch2` | `0.0066` | $\text{sens} = \dfrac{360 \times 2.54}{\text{DPI} \times \text{cm/360} \times \text{yaw}}$ |
-| `CallOfDuty` | `0.0066` | $\text{sens} = \dfrac{360 \times 2.54}{\text{DPI} \times \text{cm/360} \times \text{yaw}}$ |
+- **`GameProjection.cs` & `GameCatalog.cs`**: Converts `cm/360` ↔ in-game sensitivity across **36+ games** (including non-linear formulas for PUBG and Minecraft).
+- **`AdsProjection.cs`**: Computes Monitor Distance Vertical (MDV) zoomed-to-hipfire multipliers (`0%` focal length through `133.3%` CS2 default).
 
 ---
 
-## 2. Raw Input Pipeline
+## 2. Raw Input Pipeline & Persistence
 
-- Raw samples (`TimestampUs`, `DxCounts`, `DyCounts`, `Buttons`) are pushed from the OS-specific input thread into a lock-free `SampleRing` (`65,536` capacity).
-- `RoundController.Tick(nowS)` drains samples on each frame, updates the 3D viewport yaw/pitch using the active probe `cm/360`, and advances the round state machine (`RoundIntro` → `BlockTracking` → `BlockFlick` → `BlockDot` → `RoundScoring` → `Rest`).
-- Any block with fewer than `MinBlockSamples` (`100`) samples is flagged as `InsufficientSamples` so corrupted telemetry does not poison the optimizer.
+- OS input services (`WindowsRawInputService`, `EvdevInputService`, `HidInputService`) push relative motion reports into bounded `16,384`-slot drop-oldest channels with `DroppedSamples` telemetry, preventing idle RAM growth.
+- `RoundController.Tick(nowS)` drains samples into a lock-free `SampleRing` (`262,144` capacity, 8000 Hz safe), updates the 3D viewport yaw/pitch, and drives the 6 iso-difficulty `RoundVariant` drills (`RoundIntro` → `BlockTracking` → `BlockFlick` → `BlockDot` → `RoundScoring` → `Rest`).
+- `SessionHistoryStore` persists up to 50 completed sessions in source-generated JSON, while `SecretProtector` encrypts stored API keys on Windows via DPAPI.
 
 ---
 

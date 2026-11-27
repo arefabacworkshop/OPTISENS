@@ -3,7 +3,7 @@
   <br /><br />
 
   <p>
-    <img src="https://img.shields.io/badge/Version-0.5.9-00E5FF?style=flat-square" alt="Version 0.5.9" />
+    <img src="https://img.shields.io/badge/Version-1.0.0-00E5FF?style=flat-square" alt="Version 1.0.0" />
     <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet" alt=".NET 10" />
     <img src="https://img.shields.io/badge/UI-Avalonia%2011-8B5CF6?style=flat-square" alt="Avalonia 11" />
     <img src="https://img.shields.io/badge/Renderer-OpenGL%203.3-5586A4?style=flat-square&logo=opengl" alt="OpenGL 3.3" />
@@ -32,7 +32,7 @@
 
 **OPTISENS** scientifically finds your optimal physical mouse sensitivity (`cm/360`) using raw OS mouse telemetry, real-time 3D aiming scenarios, biomechanical kinematic scoring, Gaussian-process Bayesian optimization, and an **optional** AI coach (offline local `LFM3-1.7B` or any OpenAI-compatible API).
 
-Instead of guessing numbers or copying pro settings, OPTISENS measures how smoothly and accurately *your* hand moves across your mousepad—then recommends your ideal `cm/360` and converts it into exact in-game values for **CS2 / Source**, **Valorant / Unreal**, **Overwatch 2**, and **Call of Duty**.
+Instead of guessing numbers or copying pro settings, OPTISENS measures how smoothly and accurately *your* hand moves across your mousepad—then recommends your ideal `cm/360` and converts it into exact in-game values for **36+ games** (CS2, Valorant, Apex Legends, Overwatch 2, Call of Duty, Fortnite, R6 Siege, PUBG, and more) plus **ADS / scoped multipliers**.
 
 ---
 
@@ -62,10 +62,10 @@ Download the latest Windows `.msi` installer from the **[GitHub Releases page](h
 To build the Windows installers from source:
 
 ```powershell
-# Build .msi installer (WiX v5) -> dist/installer/OPTISENS-0.5.9-win-x64.msi
+# Build .msi installer (WiX v5) -> dist/installer/OPTISENS-1.0.0-win-x64.msi
 powershell -ExecutionPolicy Bypass -File packaging/windows/build-msi.ps1
 
-# Or build Inno Setup .exe wizard -> dist/installer/OPTISENSSetup-0.5.9-win-x64.exe
+# Or build Inno Setup .exe wizard -> dist/installer/OPTISENSSetup-1.0.0-win-x64.exe
 powershell -ExecutionPolicy Bypass -File packaging/windows/build-setup.ps1
 ```
 

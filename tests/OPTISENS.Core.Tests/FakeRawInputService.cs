@@ -11,6 +11,7 @@ public sealed class FakeRawInputService : IRawInputService
 
     public MouseButtons CurrentButtons => (MouseButtons)Volatile.Read(ref _buttons);
     public bool IsReceiving => _running;
+    public long DroppedSamples => 0;
     public ChannelReader<RawMotionSample> Samples => _channel.Reader;
     public event Action<int>? DeviceCountChanged;
 

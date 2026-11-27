@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -67,6 +68,16 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _bestBsiText = "";
     [ObservableProperty] private bool _isNewBestBsi;
     [ObservableProperty] private bool _isMuted;
+    [ObservableProperty] private bool _isMissFlash;
+    [ObservableProperty] private bool _hasGlError;
+    [ObservableProperty] private string _glErrorMessage = "";
+
+    // Crosshair appearance (Arena & Crosshair settings)
+    public IBrush CrosshairBrush { get; }
+    public bool IsCrossStyle { get; }
+    public bool IsDotStyle { get; }
+    public bool IsCircleDotStyle { get; }
+    public double CrosshairScale { get; }
 
     public ObservableCollection<RoundStepDot> RoundSteps { get; } =
         new(Enumerable.Range(1, Constants.MaxRounds).Select(i => new RoundStepDot(i)));
@@ -79,13 +90,14 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     public event Action? RequestCursorUnlock;
     public event Action? ReturnToMenuRequested;
     public event Action? ExitRequested;
+    public event Action? WarmupFinished;
     public event Action<OptimizationReport, IReadOnlyList<RoundScore>, IReadOnlyList<RoundInvalidReason>, bool>? SessionFinished;
 
-    public SessionViewModel(IRawInputService input, HardwareProfile profile, bool devEnabled)
+    public SessionViewModel(IRawInputService input, HardwareProfile profile, bool devEnabled, bool isWarmup = false)
     {
         _devEnabled = devEnabled;
         IsMuted = SoundEffectsService.Muted;
-        _controller = new RoundController(input, profile.Dpi, profile.PadWidthCm);
+        _controller = new RoundController(input, profile.Dpi, profile.PadWidthCm, isWarmup: isWarmup);
         _controller.RequestCursorLock += () => Dispatcher.UIThread.Post(() => RequestCursorLock?.Invoke());
         _controller.RequestCursorUnlock += () => Dispatcher.UIThread.Post(() => RequestCursorUnlock?.Invoke());
         _controller.TargetHit += streak => SoundEffectsService.PlayHit(streak);
@@ -98,6 +110,29 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
             Dispatcher.UIThread.Post(() =>
                 SessionFinished?.Invoke(report, _controller.RoundScores, _controller.InvalidReasons, partial));
         };
+        _controller.WarmupCompleted += () =>
+        {
+            _cts.Cancel();
+            Dispatcher.UIThread.Post(() => WarmupFinished?.Invoke());
+        };
+
+        var settings = AppSettingsStore.Load();
+        CrosshairBrush = ParseBrush(settings.CrosshairColorHex);
+        IsDotStyle = settings.CrosshairStyle == "Dot";
+        IsCircleDotStyle = settings.CrosshairStyle is "CircleDot" or "Circle-Dot";
+        IsCrossStyle = !IsDotStyle && !IsCircleDotStyle;
+        CrosshairScale = Math.Clamp(settings.CrosshairScale, 0.6, 1.6);
+    }
+
+    private static IBrush ParseBrush(string? hex)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(hex))
+                return new SolidColorBrush(Color.Parse(hex));
+        }
+        catch { /* fall through to default */ }
+        return new SolidColorBrush(Color.Parse("#00E5FF"));
     }
 
     public void StartEngine()
@@ -243,6 +278,7 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
             StreakText = hud.Streak >= 2 ? $"🔥 x{hud.Streak} STREAK" : "";
             OffScreenHintText = offScreen;
             IsHitCrosshair = snap.HitFlash || (snap.Targets.Length > 0 && snap.Targets[0].IsHit);
+            IsMissFlash = snap.MissFlash;
 
             if (DevOverlayVisible)
             {

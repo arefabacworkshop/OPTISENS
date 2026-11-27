@@ -4,7 +4,7 @@ namespace OPTISENS.Core.Config;
 public static class Constants
 {
     // --- Input & trajectory ---
-    public const int    SampleRingCapacity   = 65_536;
+    public const int    SampleRingCapacity   = 262_144;  // 2^18 = 32.7 s @ 8000 Hz
     public const double ResampleDtS          = 0.001;
     public const int    MinBlockSamples      = 100;      // <100 ms of data -> round invalid
 
@@ -68,6 +68,6 @@ public static class Constants
     public const int    MaxToolRoundTrips   = 3;
 
     // --- Profile validation (§12 M5) ---
-    public const int    DpiMin = 100, DpiMax = 6400, DpiDefault = 800;
+    public const int    DpiMin = 100, DpiMax = 32000, DpiDefault = 800;
     public const double PadWidthMinCm = 5.0, PadWidthDefaultCm = 45.0;
 }

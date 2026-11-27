@@ -15,8 +15,8 @@ OPTISENS supports **Windows**, **Linux**, and **macOS** with native raw mouse in
 powershell -ExecutionPolicy Bypass -File packaging/windows/build-setup.ps1
 ```
 
-3. Run the generated installer in `dist/installer/OPTISENSSetup-0.5.9-win-x64.exe`.
-4. Launch **OPTISENS** from the Start Menu or Desktop shortcut—the First-Run Setup screen will download or verify the AI Coach model.
+3. Run the generated installer in `dist/installer/OPTISENSSetup-1.0.0-win-x64.exe`.
+4. Launch **OPTISENS** from the Start Menu or Desktop shortcut—OPTISENS opens directly to Hardware Profile with AI Coach disabled by default; you can enable Local AI or an OpenAI-compatible API anytime from AI Settings.
 
 ### Option B: Portable / Single-File Publish
 

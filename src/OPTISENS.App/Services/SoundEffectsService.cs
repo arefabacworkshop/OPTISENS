@@ -19,14 +19,78 @@ public static partial class SoundEffectsService
     private static readonly byte[] MissWav = SynthesizeTone(170, 95, 0.045, 0.35);
     private static readonly byte[] PhaseWav = SynthesizeChime(523.25, 783.99, 0.09, 0.25);
 
-    private static readonly IntPtr[] HitBuffers = HitWavs.Select(PinWav).ToArray();
-    private static readonly IntPtr MissBuffer = PinWav(MissWav);
-    private static readonly IntPtr PhaseBuffer = PinWav(PhaseWav);
+    private const int WavHeaderBytes = 44; // WrapRiffWav layout
+    private static readonly object AudioLock = new();
+    private static readonly List<GCHandle> PinnedHandles = new();
+    private static double _volume = 0.8;
+    private static byte[][] HitWavsScaled = Array.Empty<byte[]>();
+    private static byte[] MissWavScaled = Array.Empty<byte>();
+    private static byte[] PhaseWavScaled = Array.Empty<byte>();
+    private static IntPtr[] HitBuffers = Array.Empty<IntPtr>();
+    private static IntPtr MissBuffer;
+    private static IntPtr PhaseBuffer;
 
     private static readonly Lazy<string?> UnixPlayer = new(DetectUnixPlayer);
-    private static readonly Lazy<string[]> HitFiles = new(() => HitWavs.Select((w, i) => WriteTempWav($"hit_{i}.wav", w)).ToArray());
-    private static readonly Lazy<string> MissFile = new(() => WriteTempWav("miss.wav", MissWav));
-    private static readonly Lazy<string> PhaseFile = new(() => WriteTempWav("phase.wav", PhaseWav));
+    private static readonly Lazy<string[]> HitFiles = new(() => HitWavsScaled.Select((w, i) => WriteTempWav($"hit_{i}.wav", w)).ToArray());
+    private static readonly Lazy<string> MissFile = new(() => WriteTempWav("miss.wav", MissWavScaled));
+    private static readonly Lazy<string> PhaseFile = new(() => WriteTempWav("phase.wav", PhaseWavScaled));
+
+    static SoundEffectsService()
+    {
+        lock (AudioLock) RebuildBuffers(_volume);
+    }
+
+    /// <summary>Playback volume 0..1. Rebuilds the pinned WAV buffers when changed by >= 0.05.</summary>
+    public static double Volume
+    {
+        get => Volatile.Read(ref _volume);
+        set => SetVolume(value);
+    }
+
+    public static void SetVolume(double v)
+    {
+        v = Math.Clamp(v, 0.0, 1.0);
+        lock (AudioLock)
+        {
+            if (Math.Abs(v - _volume) < 0.05) return;
+            _volume = v;
+            RebuildBuffers(v);
+        }
+    }
+
+    /// <summary>Caller holds AudioLock. Frees old pinned handles, rescales PCM, re-pins, rewrites Unix temp files.</summary>
+    private static void RebuildBuffers(double volume)
+    {
+        foreach (var h in PinnedHandles) h.Free();
+        PinnedHandles.Clear();
+
+        HitWavsScaled = HitWavs.Select(w => ScaleWav(w, volume)).ToArray();
+        MissWavScaled = ScaleWav(MissWav, volume);
+        PhaseWavScaled = ScaleWav(PhaseWav, volume);
+
+        HitBuffers = HitWavsScaled.Select(PinWav).ToArray();
+        MissBuffer = PinWav(MissWavScaled);
+        PhaseBuffer = PinWav(PhaseWavScaled);
+
+        if (HitFiles.IsValueCreated)
+            for (int i = 0; i < HitFiles.Value.Length; i++)
+                WriteTempWav($"hit_{i}.wav", HitWavsScaled[i]);
+        if (MissFile.IsValueCreated) WriteTempWav("miss.wav", MissWavScaled);
+        if (PhaseFile.IsValueCreated) WriteTempWav("phase.wav", PhaseWavScaled);
+    }
+
+    private static byte[] ScaleWav(byte[] wav, double volume)
+    {
+        var copy = (byte[])wav.Clone();
+        for (int i = WavHeaderBytes; i + 1 < copy.Length; i += 2)
+        {
+            short s = (short)(copy[i] | (copy[i + 1] << 8));
+            short scaled = (short)Math.Clamp(s * volume, short.MinValue, short.MaxValue);
+            copy[i] = (byte)(scaled & 0xFF);
+            copy[i + 1] = (byte)((scaled >> 8) & 0xFF);
+        }
+        return copy;
+    }
 
     public static void PlayHit(int streak)
     {
@@ -115,8 +179,7 @@ public static partial class SoundEffectsService
             string dir = Path.Combine(Path.GetTempPath(), "optisens-sfx");
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, name);
-            if (!File.Exists(path))
-                File.WriteAllBytes(path, wav);
+            File.WriteAllBytes(path, wav);   // always rewrite: volume changes rescale the PCM
             return path;
         }
         catch { return ""; }
@@ -137,6 +200,7 @@ public static partial class SoundEffectsService
     private static IntPtr PinWav(byte[] wav)
     {
         var handle = GCHandle.Alloc(wav, GCHandleType.Pinned);
+        PinnedHandles.Add(handle);
         return handle.AddrOfPinnedObject();
     }
 

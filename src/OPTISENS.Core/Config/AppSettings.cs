@@ -30,7 +30,15 @@ public sealed record AppSettings(
     bool HasSeenTestGuide = false,
     string[]? PinnedGameIds = null,
     bool SoundMuted = false,
-    bool UseInchesPer360 = false)
+    bool UseInchesPer360 = false,
+    double LastDpi = Constants.DpiDefault,
+    double LastPadWidthCm = Constants.PadWidthDefaultCm,
+    string LastGrip = "Palm",
+    double ArenaFovDeg = 103.0,
+    string CrosshairStyle = "Cross",
+    string CrosshairColorHex = "#00E5FF",
+    double CrosshairScale = 1.0,
+    double SoundVolume = 0.8)
 {
     /// <summary>Resolves the effective backend mode, defaulting by platform when unset.</summary>
     public InferenceBackendMode GetBackendMode() =>
@@ -70,7 +78,8 @@ public static class AppSettingsStore
         try
         {
             string json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.AppSettings) ?? new AppSettings();
+            var loaded = JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.AppSettings) ?? new AppSettings();
+            return loaded with { OpenAiApiKey = SecretProtector.Unprotect(loaded.OpenAiApiKey) };
         }
         catch
         {
@@ -80,6 +89,7 @@ public static class AppSettingsStore
 
     public static void Save(AppSettings settings, string? pathOverride = null)
     {
+        settings = settings with { OpenAiApiKey = SecretProtector.Protect(settings.OpenAiApiKey) };
         string path = pathOverride ?? GetConfigPath();
         string? dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

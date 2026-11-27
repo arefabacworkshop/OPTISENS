@@ -24,7 +24,8 @@ public sealed class ToolDispatcher
     public static readonly string[] DefaultToolSchemas =
     [
         """{"name": "adjust_sensitivity", "description": "Adjust the recommended sensitivity up or down by a percentage. Use when the player reports the current feel is too fast or too slow.", "parameters": {"type": "object", "properties": {"direction": {"type": "string", "enum": ["faster", "slower"]}, "percentage": {"type": "number"}}, "required": ["direction", "percentage"]}}""",
-        """{"name": "set_specific_cm360", "description": "Set the recommended sensitivity to an exact cm/360 value.", "parameters": {"type": "object", "properties": {"cm360": {"type": "number"}}, "required": ["cm360"]}}"""
+        """{"name": "set_specific_cm360", "description": "Set the recommended sensitivity to an exact cm/360 value.", "parameters": {"type": "object", "properties": {"cm360": {"type": "number"}}, "required": ["cm360"]}}""",
+        """{"name": "get_game_sensitivity", "description": "Look up the exact in-game sensitivity for any supported game (36+ games such as Apex, Fortnite, R6 Siege, PUBG, Minecraft, CS2, Valorant, etc.) at the current cm/360 and DPI.", "parameters": {"type": "object", "properties": {"game": {"type": "string"}}, "required": ["game"]}}"""
     ];
 
     private double _dpi;
@@ -45,12 +46,13 @@ public sealed class ToolDispatcher
     }
 
     public static bool IsKnownTool(string name)
-        => NormalizeToolName(name) is "adjust_sensitivity" or "set_specific_cm360";
+        => NormalizeToolName(name) is "adjust_sensitivity" or "set_specific_cm360" or "get_game_sensitivity";
 
     private static string NormalizeToolName(string name) => name.Trim().ToLowerInvariant() switch
     {
         "adjust_sensitivity" or "adjust-sensitivity" or "adjust_sensibility" or "adjust-sensibility" => "adjust_sensitivity",
         "set_specific_cm360" or "set-specific-cm360" or "set_cm360" or "set_sensitivity" => "set_specific_cm360",
+        "get_game_sensitivity" or "get-game-sensitivity" or "convert_game" => "get_game_sensitivity",
         var other => other
     };
 
@@ -97,13 +99,26 @@ public sealed class ToolDispatcher
                 note = $"Set cm/360 to {Math.Clamp(next, _boundsLo, _boundsHi):F2}.";
                 break;
             }
+            case "get_game_sensitivity":
+            {
+                string gameQuery = GetArg(call, "game") ?? "";
+                var game = GameCatalog.Filter(gameQuery, GameCategory.All, new HashSet<string>(), false).FirstOrDefault();
+                note = game is null
+                    ? $"No supported game matches '{gameQuery}'."
+                    : $"{game.Name}: {game.FormatSens(game.ToGameSens(_dpi, CurrentCm360))} (at {_dpi:F0} DPI, {CurrentCm360:F2} cm/360)";
+                break;
+            }
             default:
                 note = $"Unknown tool '{call.Name}'.";
                 break;
         }
 
-        CurrentCm360 = Math.Clamp(next, _boundsLo, _boundsHi);
-        Cm360Changed?.Invoke(CurrentCm360);
+        double clamped = Math.Clamp(next, _boundsLo, _boundsHi);
+        if (clamped != CurrentCm360)
+        {
+            CurrentCm360 = clamped;
+            Cm360Changed?.Invoke(CurrentCm360);
+        }
 
         var res = new ToolResultJson(
             Math.Round(CurrentCm360, 2),

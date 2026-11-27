@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using OPTISENS.Core.Config;
 
 namespace OPTISENS.App.Services;
@@ -41,15 +43,34 @@ public sealed class AssetBootstrapper
             if (!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
 
             string partPath = destPath + ".part";
-            using var resp = await Http.GetAsync(spec.Url, HttpCompletionOption.ResponseHeadersRead, ct);
-            resp.EnsureSuccessStatusCode();
+            long existingPartBytes = File.Exists(partPath) ? new FileInfo(partPath).Length : 0;
 
-            long? contentLen = resp.Content.Headers.ContentLength;
-            await using (var netStream = await resp.Content.ReadAsStreamAsync(ct))
-            await using (var fileStream = new FileStream(partPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            using var req = new HttpRequestMessage(HttpMethod.Get, spec.Url);
+            if (existingPartBytes > 0)
+                req.Headers.Range = new RangeHeaderValue(existingPartBytes, null);
+
+            var resp = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (resp.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable && existingPartBytes > 0)
             {
+                resp.Dispose();
+                File.Delete(partPath);
+                existingPartBytes = 0;
+                resp = await Http.GetAsync(spec.Url, HttpCompletionOption.ResponseHeadersRead, ct);
+            }
+
+            using (resp)
+            {
+                resp.EnsureSuccessStatusCode();
+                bool isResume = resp.StatusCode == HttpStatusCode.PartialContent && existingPartBytes > 0;
+                long baseBytes = isResume ? existingPartBytes : 0;
+                long? contentLen = resp.Content.Headers.ContentLength is { } cl ? baseBytes + cl : null;
+                var fileMode = isResume ? FileMode.Append : FileMode.Create;
+
+                await using var netStream = await resp.Content.ReadAsStreamAsync(ct);
+                await using var fileStream = new FileStream(partPath, fileMode, FileAccess.Write, FileShare.None, 81920, useAsync: true);
                 var buffer = new byte[81920];
-                long downloaded = 0;
+                long downloaded = baseBytes;
+                long sessionDownloaded = 0;
                 var sw = Stopwatch.StartNew();
                 long lastReportMs = 0;
 
@@ -59,15 +80,15 @@ public sealed class AssetBootstrapper
                     if (read == 0) break;
                     await fileStream.WriteAsync(buffer.AsMemory(0, read), ct);
                     downloaded += read;
+                    sessionDownloaded += read;
 
                     long elapsedMs = sw.ElapsedMilliseconds;
                     if (elapsedMs - lastReportMs >= 100 || (contentLen.HasValue && downloaded >= contentLen.Value))
                     {
                         lastReportMs = elapsedMs;
                         double sec = Math.Max(0.05, elapsedMs / 1000.0);
-                        double speedBps = downloaded / sec;
+                        double speedBps = sessionDownloaded / sec;
                         double speedMBps = speedBps / (1024.0 * 1024.0);
-                        long fileExpected = contentLen is > 0 ? contentLen.Value : Math.Max(1L, spec.MinBytes);
                         long bytesSoFar = completedBytes + downloaded;
                         double overallFrac = Math.Clamp(bytesSoFar / (double)Math.Max(1L, totalExpectedBytes), 0.0, 1.0);
                         TimeSpan? eta = speedBps > 1

@@ -1,6 +1,7 @@
 <UserControl x:Class="OPTISENS.App.Views.HardwareProfileView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cfg="using:OPTISENS.Core.Config"
              xmlns:vm="using:OPTISENS.App.ViewModels"
              x:DataType="vm:HardwareProfileViewModel"
              x:CompileBindings="True">
@@ -31,7 +32,7 @@
 
             <StackPanel Spacing="8">
               <TextBlock Text="MOUSE DPI" Classes="eyebrow"/>
-              <NumericUpDown Value="{Binding Dpi}" Minimum="100" Maximum="6400" Increment="50" FormatString="0"/>
+              <NumericUpDown Value="{Binding Dpi}" Minimum="100" Maximum="32000" Increment="50" FormatString="0"/>
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Button Classes="pill-tab" Content="400" Command="{Binding SelectDpiCommand}" CommandParameter="400"/>
                 <Button Classes="pill-tab" Content="800" Command="{Binding SelectDpiCommand}" CommandParameter="800"/>
@@ -65,11 +66,54 @@
 
             <Button Content="Start calibration" Command="{Binding StartCalibrationCommand}"
                     Classes="cta" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14"/>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Grid.Column="0" Classes="secondary" Content="30s Quick Warmup"
+                      Command="{Binding StartWarmupCommand}" HorizontalContentAlignment="Center" Padding="10,8" FontSize="12"/>
+              <Button Grid.Column="1" Classes="secondary" Content="Crosshair &amp; FOV"
+                      Command="{Binding OpenArenaSettingsCommand}" HorizontalContentAlignment="Center" Padding="10,8" FontSize="12"/>
+            </Grid>
           </StackPanel>
         </Border>
 
         <!-- Diagnostics & quick actions -->
         <StackPanel Grid.Column="1" Spacing="16">
+          <Border Classes="card" Padding="18" IsVisible="{Binding HasHistory}">
+            <StackPanel Spacing="10">
+              <TextBlock Text="RECENT CALIBRATION &amp; CONVERTER" Classes="eyebrow"/>
+              <TextBlock Text="{Binding LatestSessionSummary}" FontSize="13" FontWeight="SemiBold"
+                         Foreground="{StaticResource TextPrimaryBrush}"/>
+              <Button Classes="secondary" Content="Open Results &amp; 36+ Game Converter →"
+                      Command="{Binding OpenLatestResultsCommand}" HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center" Padding="12,8" FontSize="12"/>
+              <ItemsControl ItemsSource="{Binding RecentPreview}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="cfg:CalibrationHistoryEntry">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="0,2">
+                      <Button Grid.Column="0" Classes="ghost" HorizontalContentAlignment="Left" Padding="2,2"
+                              Command="{Binding $parent[UserControl].((vm:HardwareProfileViewModel)DataContext).OpenHistoryEntryCommand}"
+                              CommandParameter="{Binding}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center">
+                            <TextBlock.Text>
+                              <MultiBinding StringFormat="{}{0:F1} cm/360 · {1:F0} DPI">
+                                <Binding Path="RecommendedCm360"/>
+                                <Binding Path="Dpi"/>
+                              </MultiBinding>
+                            </TextBlock.Text>
+                          </TextBlock>
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="1" Classes="ghost" Content="✕" FontSize="10" Padding="6,2"
+                              Command="{Binding $parent[UserControl].((vm:HardwareProfileViewModel)DataContext).DeleteHistoryEntryCommand}"
+                              CommandParameter="{Binding}"/>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
           <Border Classes="card" Padding="18">
             <StackPanel Spacing="12">
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">

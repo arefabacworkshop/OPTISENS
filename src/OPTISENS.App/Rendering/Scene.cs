@@ -156,16 +156,23 @@ public sealed unsafe class Scene : IDisposable
         _gl.ClearColor(0.0353f, 0.0392f, 0.0510f, 1.0f); // #090A0D
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-        var vp = Camera.BuildViewProjection(state.YawDeg, state.PitchDeg, width, height);
+        var vp = Camera.BuildViewProjection(state.YawDeg, state.PitchDeg, width, height, state.HorizontalFovDeg);
 
-        // 1) Arena cage & floor grid
+        // 1) Arena cage & floor grid (coral tint on miss so it registers in peripheral vision)
         _gl.UseProgram(_gridProg);
         _gl.UniformMatrix4(_uGridMvp, 1, false, vp.M);
-        _gl.Uniform4(_uGridColor,
-            0.10f + state.AccentR * 0.12f,
-            0.16f + state.AccentG * 0.12f,
-            0.24f + state.AccentB * 0.12f,
-            0.22f);
+        if (state.MissFlash)
+        {
+            _gl.Uniform4(_uGridColor, 0.95f, 0.28f, 0.28f, 0.32f);
+        }
+        else
+        {
+            _gl.Uniform4(_uGridColor,
+                0.10f + state.AccentR * 0.12f,
+                0.16f + state.AccentG * 0.12f,
+                0.24f + state.AccentB * 0.12f,
+                0.22f);
+        }
         _gl.BindVertexArray(_gridVao);
         _gl.DrawArrays(PrimitiveType.Lines, 0, (uint)_gridVertexCount);
 
@@ -226,7 +233,44 @@ public sealed unsafe class Scene : IDisposable
             _gl.DrawElements(PrimitiveType.Triangles, (uint)_sphereIndexCount, DrawElementsType.UnsignedInt, null);
         }
 
-        // 4) Expanding emerald hit-ripple ring on the target sphere
+        // 4) Target lifetime ring (Flick & Dot): open arc shrinks with LifeRemaining01
+        if (state.ActiveBlock is BlockKind.Flick or BlockKind.Dot)
+        {
+            _gl.UseProgram(_gridProg);
+            _gl.UniformMatrix4(_uGridMvp, 1, false, vp.M);
+            _gl.BindVertexArray(_rippleVao);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _rippleVbo);
+            float* arc = stackalloc float[24 * 3];
+            foreach (var target in state.Targets)
+            {
+                int segs = Math.Clamp((int)Math.Ceiling(24 * target.LifeRemaining01), 2, 24);
+                double spanRad = 2.0 * Math.PI * target.LifeRemaining01;
+                double ringR = target.RadiusDeg * 1.35;
+                for (int i = 0; i < segs; i++)
+                {
+                    double a = spanRad * i / (segs - 1);
+                    var (x, y, z) = SphericalToWorld(
+                        target.AzimuthDeg + Math.Cos(a) * ringR,
+                        target.ElevationDeg + Math.Sin(a) * ringR,
+                        distM);
+                    arc[i * 3] = x;
+                    arc[i * 3 + 1] = y;
+                    arc[i * 3 + 2] = z;
+                }
+                _gl.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)(segs * 3 * sizeof(float)), arc);
+                if (target.LifeRemaining01 < 0.32)
+                    _gl.Uniform4(_uGridColor, 1.0f, 0.42f, 0.28f, 0.85f);          // coral urgency
+                else
+                    _gl.Uniform4(_uGridColor,
+                        0.10f + state.AccentR * 0.80f,
+                        0.28f + state.AccentG * 0.62f,
+                        0.42f + state.AccentB * 0.58f,
+                        0.55f);                                                    // subtle round accent
+                _gl.DrawArrays(PrimitiveType.LineStrip, 0, (uint)segs);
+            }
+        }
+
+        // 5) Expanding emerald hit-ripple ring on the target sphere
         if (state.HitRippleAgeS < 0.24)
         {
             double progress = Math.Clamp(state.HitRippleAgeS / 0.24, 0.0, 1.0);

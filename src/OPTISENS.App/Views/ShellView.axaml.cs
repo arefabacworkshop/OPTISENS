@@ -14,6 +14,26 @@ public partial class ShellView : Window
     {
         InitializeComponent();
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+        Deactivated += OnWindowDeactivated;
+    }
+
+    private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (e.ClickCount == 2)
+        {
+            ToggleWindowState(this, new RoutedEventArgs());
+            return;
+        }
+        if (WindowState == WindowState.Normal)
+            BeginMoveDrag(e);
+    }
+
+    private void OnWindowDeactivated(object? sender, EventArgs e)
+    {
+        try { CursorHelper.ForceUnlockAndShow(); } catch { /* ignore */ }
+        if (DataContext is ShellViewModel { CurrentPage: SessionViewModel sessionVm } && !sessionVm.ShowAbortConfirm)
+            sessionVm.RequestAbortPrompt();
     }
 
     private void ToggleWindowState(object? sender, RoutedEventArgs e) =>

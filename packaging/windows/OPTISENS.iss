@@ -1,5 +1,5 @@
 #define MyAppName "OPTISENS"
-#define MyAppVersion "0.5.9"
+#define MyAppVersion "1.0.0"
 #define MyAppExeName "OPTISENS.App.exe"
 
 [Setup]

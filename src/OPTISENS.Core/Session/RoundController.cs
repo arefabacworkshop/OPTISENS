@@ -65,6 +65,14 @@ public sealed class RoundController
     private double _lastHitElDeg;
     private double _bestBsi;
     private bool _isNewBestBsi;
+    private long _droppedBaseline;
+
+    // Warmup mode: unscored 30s drill at the midpoint probe (3x 10s blocks, 2s intro)
+    private readonly bool _isWarmup;
+    private readonly double _roundIntroS;
+    private readonly double _blockTrackingS;
+    private readonly double _blockFlickS;
+    private readonly double _blockDotS;
 
     // SampleRing sequence + time windows for blocks A, B, C
     private long _winAStartSeq, _winAEndSeq;
@@ -81,13 +89,20 @@ public sealed class RoundController
     private double _swipeCm;
     private double _swipeYawDeltaDeg;
     private double _lastSwipeCm360;
+    private readonly double _horizontalFovDeg;
 
-    public RoundController(IRawInputService input, double dpi, double padWidthCm, int sessionSalt = 1337)
+    public RoundController(IRawInputService input, double dpi, double padWidthCm, int sessionSalt = 1337, bool isWarmup = false)
     {
         _input = input;
         _dpi = dpi;
         _sessionSalt = sessionSalt;
         _session = new OptimizationSession(padWidthCm, 0);
+        _isWarmup = isWarmup;
+        _roundIntroS = isWarmup ? 2.0 : Constants.RoundIntroS;
+        _blockTrackingS = isWarmup ? 10.0 : Constants.BlockTrackingS;
+        _blockFlickS = isWarmup ? 10.0 : Constants.BlockFlickS;
+        _blockDotS = isWarmup ? 10.0 : Constants.BlockDotS;
+        _horizontalFovDeg = Math.Clamp(AppSettingsStore.Load().ArenaFovDeg, 70.0, 130.0);
     }
 
     public RoundPhase Phase => _phase;
@@ -102,6 +117,7 @@ public sealed class RoundController
     public event Action? RequestCursorUnlock;
     public event Action<HudSnapshot>? HudUpdated;
     public event Action<OptimizationReport, bool>? Completed;
+    public event Action? WarmupCompleted;
     public event Action<int>? TargetHit;
     public event Action? TargetMissed;
     public event Action<RoundPhase>? PhaseChanged;
@@ -111,6 +127,7 @@ public sealed class RoundController
         if (_phase != RoundPhase.Idle) return;
         _sessionStartS = nowS;
         _rateWindowStartS = nowS;
+        _droppedBaseline = _input.DroppedSamples;
         BeginNextRound(nowS);
     }
 
@@ -254,7 +271,7 @@ public sealed class RoundController
         switch (_phase)
         {
             case RoundPhase.RoundIntro:
-                if (elapsed >= Constants.RoundIntroS)
+                if (elapsed >= _roundIntroS)
                 {
                     _phase = RoundPhase.BlockTracking;
                     _phaseStartS = nowS;
@@ -267,7 +284,7 @@ public sealed class RoundController
 
             case RoundPhase.BlockTracking:
                 _scenario!.Tick(nowS, _yawDeg, _pitchDeg, false);
-                if (elapsed >= Constants.BlockTrackingS)
+                if (elapsed >= _blockTrackingS)
                 {
                     _winAEndSeq = _ring.Sequence;
                     _winAEndS = nowS;
@@ -298,7 +315,7 @@ public sealed class RoundController
                     TargetMissed?.Invoke();
                 }
 
-                if (elapsed >= Constants.BlockFlickS)
+                if (elapsed >= _blockFlickS)
                 {
                     _winBEndSeq = _ring.Sequence;
                     _winBEndS = nowS;
@@ -330,12 +347,23 @@ public sealed class RoundController
                     TargetMissed?.Invoke();
                 }
 
-                if (elapsed >= Constants.BlockDotS)
+                if (elapsed >= _blockDotS)
                 {
                     _winCEndSeq = _ring.Sequence;
                     _winCEndS = nowS;
                     _scenario.SealActiveBlock(nowS);
-                    EnterRoundScoring(nowS);
+                    if (_isWarmup)
+                    {
+                        // Warmup is unscored: skip scoring/report entirely.
+                        RequestCursorUnlock?.Invoke();
+                        _phase = RoundPhase.SessionComplete;
+                        PhaseChanged?.Invoke(_phase);
+                        WarmupCompleted?.Invoke();
+                    }
+                    else
+                    {
+                        EnterRoundScoring(nowS);
+                    }
                 }
                 break;
             }
@@ -384,14 +412,15 @@ public sealed class RoundController
             TargetDeltaYawDeg = deltaYaw,
             TargetDeltaPitchDeg = deltaPitch,
             SamplesPerSec = _samplesPerSec,
-            DroppedSamples = 0,
+            DroppedSamples = Math.Max(0, _input.DroppedSamples - _droppedBaseline),
             LastSwipeCm360 = _lastSwipeCm360,
             AccentR = _scenario?.Variant.AccentR ?? 0.0f,
             AccentG = _scenario?.Variant.AccentG ?? 0.90f,
             AccentB = _scenario?.Variant.AccentB ?? 1.0f,
             LastHitAzimuthDeg = _lastHitAzDeg,
             LastHitElevationDeg = _lastHitElDeg,
-            HitRippleAgeS = nowS - _lastHitAtS < 0.24 ? nowS - _lastHitAtS : 99.0
+            HitRippleAgeS = nowS - _lastHitAtS < 0.24 ? nowS - _lastHitAtS : 99.0,
+            HorizontalFovDeg = _horizontalFovDeg
         });
     }
 
@@ -401,7 +430,9 @@ public sealed class RoundController
         _retryPending = false;
         _roundIndex++;
         _roundStartS = nowS - _sessionStartS;
-        _currentProbeCm360 = _session.NextProbeCm360();
+        _currentProbeCm360 = _isWarmup
+            ? (_session.BoundsLoCm360 + _session.BoundsHiCm360) * 0.5
+            : _session.NextProbeCm360();
         _scenario = new ScenarioState(_roundIndex, _sessionSalt);
         _yawDeg = 0;
         _pitchDeg = 0;
@@ -502,21 +533,21 @@ public sealed class RoundController
         (string status, double prog, string live) = _phase switch
         {
             RoundPhase.RoundIntro => (
-                $"GET READY ({Math.Max(1, (int)Math.Ceiling(Constants.RoundIntroS - elapsed))}s)",
-                Math.Clamp(elapsed / Constants.RoundIntroS, 0, 1),
+                $"GET READY ({Math.Max(1, (int)Math.Ceiling(_roundIntroS - elapsed))}s)",
+                Math.Clamp(elapsed / _roundIntroS, 0, 1),
                 "Center your mouse on the pad — Phase 1: Follow sphere (NO CLICK)"),
             RoundPhase.BlockTracking => (
                 "PHASE 1/3 · TRACKING (NO CLICK)",
-                Math.Clamp(elapsed / Constants.BlockTrackingS, 0, 1),
-                $"Lock: {_scenario?.LiveTrackingAccuracy * 100:F0}%   ({Math.Max(0, Constants.BlockTrackingS - elapsed):F1}s)"),
+                Math.Clamp(elapsed / _blockTrackingS, 0, 1),
+                $"Lock: {_scenario?.LiveTrackingAccuracy * 100:F0}%   ({Math.Max(0, _blockTrackingS - elapsed):F1}s)"),
             RoundPhase.BlockFlick => (
                 "PHASE 2/3 · FLICK + LEFT-CLICK",
-                Math.Clamp(elapsed / Constants.BlockFlickS, 0, 1),
-                $"Hits: {_scenario?.FlickAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.FlickAttempts.Count ?? 0}   ({Math.Max(0, Constants.BlockFlickS - elapsed):F1}s)"),
+                Math.Clamp(elapsed / _blockFlickS, 0, 1),
+                $"Hits: {_scenario?.FlickAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.FlickAttempts.Count ?? 0}   ({Math.Max(0, _blockFlickS - elapsed):F1}s)"),
             RoundPhase.BlockDot => (
                 "PHASE 3/3 · MICRO-DOT + LEFT-CLICK",
-                Math.Clamp(elapsed / Constants.BlockDotS, 0, 1),
-                $"Hits: {_scenario?.DotAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.DotAttempts.Count ?? 0}   ({Math.Max(0, Constants.BlockDotS - elapsed):F1}s)"),
+                Math.Clamp(elapsed / _blockDotS, 0, 1),
+                $"Hits: {_scenario?.DotAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.DotAttempts.Count ?? 0}   ({Math.Max(0, _blockDotS - elapsed):F1}s)"),
             RoundPhase.Rest => _retryPending
                 ? (
                     "LOW INPUT DATA — RETRYING ROUND",

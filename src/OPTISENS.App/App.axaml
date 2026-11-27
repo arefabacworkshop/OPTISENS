@@ -161,5 +161,8 @@
     <DataTemplate DataType="{x:Type vm:ResultsViewModel}">
       <views:ResultsDashboardView/>
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ArenaSettingsViewModel}">
+      <views:ArenaSettingsView/>
+    </DataTemplate>
   </Application.DataTemplates>
 </Application>

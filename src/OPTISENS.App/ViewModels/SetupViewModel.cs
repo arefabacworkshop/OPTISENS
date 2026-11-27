@@ -29,7 +29,7 @@ public partial class SetupViewModel : ViewModelBase
     public string AppVersion { get; } =
         "v" + (typeof(SetupViewModel).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion.Split('+')[0] ?? "0.5.9");
+            .InformationalVersion.Split('+')[0] ?? "1.0.0");
 
     private readonly AssetBootstrapper _bootstrapper = new();
     private CancellationTokenSource? _cts;
@@ -38,7 +38,7 @@ public partial class SetupViewModel : ViewModelBase
     public string StatusBadgeText => IsReconfigure ? "AI COACH SETTINGS" : "FIRST-RUN SETUP";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PrimaryCtaText))]
+    [NotifyPropertyChangedFor(nameof(PrimaryCtaText), nameof(HasLocalModelFiles), nameof(ShowDeleteLocalModel))]
     private string _targetDirectory;
 
     [ObservableProperty]
@@ -50,7 +50,9 @@ public partial class SetupViewModel : ViewModelBase
     private AiProviderMode _selectedProvider = AiProviderMode.LocalLfm3;
 
     [ObservableProperty] private bool _isChoosingOptions = true;
-    [ObservableProperty] private bool _isDownloading;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowDeleteLocalModel))]
+    private bool _isDownloading;
 
     [ObservableProperty] private string _statusTitle = "Welcome to OPTISENS";
     [ObservableProperty] private string _statusSubtitle =
@@ -72,6 +74,12 @@ public partial class SetupViewModel : ViewModelBase
     public bool IsLocalSelected => IsAiEnabled && SelectedProvider == AiProviderMode.LocalLfm3;
     public bool IsOpenAiSelected => IsAiEnabled && SelectedProvider == AiProviderMode.OpenAiCompatible;
     public bool IsAiDisabled => !IsAiEnabled;
+    public bool HasLocalModelFiles =>
+        !string.IsNullOrWhiteSpace(TargetDirectory) &&
+        AssetManifest.RequiredAssets.Any(s =>
+            File.Exists(Path.Combine(TargetDirectory, s.RelativePath)) ||
+            File.Exists(Path.Combine(TargetDirectory, s.RelativePath) + ".part"));
+    public bool ShowDeleteLocalModel => HasLocalModelFiles && !IsDownloading;
 
     public string PrimaryCtaText
     {
@@ -345,6 +353,25 @@ public partial class SetupViewModel : ViewModelBase
 
     [RelayCommand]
     private void CancelReconfigure() => SetupCancelled?.Invoke();
+
+    [RelayCommand]
+    private void DeleteLocalModel()
+    {
+        if (string.IsNullOrWhiteSpace(TargetDirectory)) return;
+        foreach (var spec in AssetManifest.RequiredAssets)
+        {
+            string full = Path.Combine(TargetDirectory, spec.RelativePath);
+            try { if (File.Exists(full)) File.Delete(full); } catch { /* best effort */ }
+            try { if (File.Exists(full + ".part")) File.Delete(full + ".part"); } catch { /* best effort */ }
+        }
+        IsAiEnabled = false;
+        var existing = AppSettingsStore.Load();
+        AppSettingsStore.Save(existing with { AiMode = AiProviderMode.Disabled });
+        RefreshFileChecklist();
+        OnPropertyChanged(nameof(HasLocalModelFiles));
+        OnPropertyChanged(nameof(ShowDeleteLocalModel));
+        OnPropertyChanged(nameof(PrimaryCtaText));
+    }
 
     private void PersistAndFinish(AiProviderMode mode)
     {

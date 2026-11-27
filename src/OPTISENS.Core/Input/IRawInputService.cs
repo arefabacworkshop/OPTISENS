@@ -24,6 +24,7 @@ public interface IRawInputService : IDisposable
 {
     MouseButtons CurrentButtons { get; }          // atomic snapshot for click detection
     bool IsReceiving { get; }                     // >= 1 device delivering samples
+    long DroppedSamples { get; }                  // samples discarded by the bounded channel since start
     ChannelReader<RawMotionSample> Samples { get; }
     event Action<int>? DeviceCountChanged;        // drives D20 remediation dialog
     void Start();

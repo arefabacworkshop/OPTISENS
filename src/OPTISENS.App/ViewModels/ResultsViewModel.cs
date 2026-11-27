@@ -125,6 +125,24 @@ public partial class ResultsViewModel : ViewModelBase
     [ObservableProperty] private string _comparisonSummary = "";
     [ObservableProperty] private string _gameCountText = "";
 
+    // ADS / scoped sensitivity calculator (Monitor Distance Coefficient)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMdvFocal), nameof(IsMdv75), nameof(IsMdv100), nameof(IsMdv133))]
+    private double _selectedMdvPercent;
+    [ObservableProperty] private string _copySummaryLabel = "Copy Summary";
+
+    public ObservableCollection<AdsEntry> AdsEntries { get; } = new();
+    public bool IsMdvFocal => SelectedMdvPercent == 0.0;
+    public bool IsMdv75 => SelectedMdvPercent == 75.0;
+    public bool IsMdv100 => SelectedMdvPercent == 100.0;
+    public bool IsMdv133 => Math.Abs(SelectedMdvPercent - 133.3333) < 0.5;
+
+    /// <summary>Raw session telemetry JSON for "Export JSON" (set by the shell when loading results).</summary>
+    public string? RawTelemetryJson { get; set; }
+
+    /// <summary>Wired by the view to Avalonia's SaveFilePickerAsync.</summary>
+    public Func<string, Task>? SaveJsonFileAsync { get; set; }
+
     public bool AllCategoryActive => SelectedCategory == GameCategory.All;
     public bool IsTacticalActive => SelectedCategory == GameCategory.TacticalFps;
     public bool IsHeroActive => SelectedCategory == GameCategory.HeroShooter;
@@ -137,6 +155,8 @@ public partial class ResultsViewModel : ViewModelBase
     public IReadOnlyList<GameCategory> Categories => Enum.GetValues<GameCategory>().ToArray();
 
     private readonly HashSet<string> _pinnedIds;
+    private double _bandLoCm360;
+    private double _bandHiCm360;
 
     public event Action? BackToMenuRequested;
     public event Action? RecalibrateRequested;
@@ -167,6 +187,46 @@ public partial class ResultsViewModel : ViewModelBase
     {
         if (int.TryParse(value, out int dpi))
             EditableDpi = Math.Clamp(dpi, Constants.DpiMin, Constants.DpiMax);
+    }
+
+    [RelayCommand]
+    private void SelectMdv(string value)
+    {
+        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
+            SelectedMdvPercent = pct;
+    }
+
+    [RelayCommand]
+    private async Task CopySummaryAsync()
+    {
+        if (Clipboard is not { } clip) return;
+        double dpi = (double)Math.Clamp(EditableDpi, Constants.DpiMin, Constants.DpiMax);
+        double cm = ActiveCm360;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("# OPTISENS Calibration Result");
+        sb.AppendLine();
+        sb.AppendLine($"- **Recommended:** {cm:F1} cm/360 ({cm / 2.54:F2} in/360)");
+        sb.AppendLine($"- **Plausible band:** {_bandLoCm360:F1} – {_bandHiCm360:F1} cm/360");
+        sb.AppendLine($"- **DPI:** {dpi:F0}");
+        sb.AppendLine();
+        sb.AppendLine("## Pinned game sensitivities");
+        foreach (var game in GameCatalog.All.Where(g => _pinnedIds.Contains(g.Id)))
+            sb.AppendLine($"- **{game.Name}:** {game.FormatSens(game.ToGameSens(dpi, cm))}");
+        await clip.SetTextAsync(sb.ToString());
+        int ver = Interlocked.Increment(ref _summaryCopyVersion);
+        CopySummaryLabel = "Copied!";
+        await Task.Delay(1500);
+        if (_summaryCopyVersion == ver)
+            CopySummaryLabel = "Copy Summary";
+    }
+
+    private int _summaryCopyVersion;
+
+    [RelayCommand]
+    private async Task ExportJsonAsync()
+    {
+        if (RawTelemetryJson is { } json && SaveJsonFileAsync is { } save)
+            await save(json);
     }
 
     [RelayCommand]
@@ -236,6 +296,7 @@ public partial class ResultsViewModel : ViewModelBase
         var settings = AppSettingsStore.Load();
         _useInchesPer360 = settings.UseInchesPer360;
         _pinnedIds = new HashSet<string>(settings.PinnedGameIds ?? GameCatalog.DefaultPinnedIds, StringComparer.OrdinalIgnoreCase);
+        RefreshAds();
     }
 
     public static string CategoryLabelFor(GameCategory category) => category switch
@@ -275,6 +336,7 @@ public partial class ResultsViewModel : ViewModelBase
     }
 
     partial void OnGameSearchQueryChanged(string value) => RefreshProjections(ActiveCm360);
+    partial void OnSelectedMdvPercentChanged(double value) => RefreshAds();
     partial void OnSelectedCategoryChanged(GameCategory value) => RefreshProjections(ActiveCm360);
     partial void OnShowPinnedOnlyChanged(bool value) => RefreshProjections(ActiveCm360);
     partial void OnSourceGameChanged(GameDefinition value)
@@ -312,6 +374,8 @@ public partial class ResultsViewModel : ViewModelBase
         MinCm360 = report.Curve[0].Cm360;
         MaxCm360 = report.Curve[^1].Cm360;
         OptimalCm360 = report.RecommendedCm360;
+        _bandLoCm360 = report.BandLoCm360;
+        _bandHiCm360 = report.BandHiCm360;
         EditableDpi = (decimal)dpi;
         ActiveCm360 = report.RecommendedCm360;
         BandText = $"plausible band {report.BandLoCm360:F1} – {report.BandHiCm360:F1} cm/360";
@@ -376,5 +440,12 @@ public partial class ResultsViewModel : ViewModelBase
         }
         GameCountText = $"{Projections.Count} games";
         UpdateEdpiReadout();
+    }
+
+    private void RefreshAds()
+    {
+        AdsEntries.Clear();
+        foreach (var entry in AdsProjection.ComputeAll(SelectedMdvPercent))
+            AdsEntries.Add(entry);
     }
 }

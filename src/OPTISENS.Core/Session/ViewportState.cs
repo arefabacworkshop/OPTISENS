@@ -40,6 +40,7 @@ public sealed class ViewportState
     public double LastHitAzimuthDeg { get; init; }
     public double LastHitElevationDeg { get; init; }
     public double HitRippleAgeS { get; init; } = 99.0;
+    public double HorizontalFovDeg { get; init; } = 103.0;
 
     public static void Publish(ViewportState next) => Interlocked.Exchange(ref _current, next);
 

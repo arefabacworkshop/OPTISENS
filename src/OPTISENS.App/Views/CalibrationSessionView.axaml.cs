@@ -25,6 +25,7 @@ public partial class CalibrationSessionView : UserControl
         {
             vm.RequestCursorLock += LockCursor;
             vm.RequestCursorUnlock += UnlockCursor;
+            CrosshairCanvas.RenderTransform = new Avalonia.Media.ScaleTransform(vm.CrosshairScale, vm.CrosshairScale);
         }
     }
 
@@ -43,7 +44,11 @@ public partial class CalibrationSessionView : UserControl
     private void OnGlInitFailed(string msg)
     {
         if (DataContext is SessionViewModel vm)
+        {
+            vm.HasGlError = true;
+            vm.GlErrorMessage = msg;
             vm.CursorWarning = $"OpenGL init failed: {msg}";
+        }
     }
 
     private void OnFrameRendered(double ms)
@@ -93,7 +98,7 @@ public partial class CalibrationSessionView : UserControl
 
     private void UnlockCursor()
     {
-        try { CursorHelper.UnlockAndShow(); }
+        try { CursorHelper.ForceUnlockAndShow(); }
         catch { /* ignore on unlock */ }
     }
 }

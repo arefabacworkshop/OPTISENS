@@ -9,8 +9,16 @@ namespace OPTISENS.Input.Windows;
 
 public sealed class WindowsRawInputService : IRawInputService
 {
-    private readonly Channel<RawMotionSample> _channel = Channel.CreateUnbounded<RawMotionSample>(
-        new UnboundedChannelOptions { SingleWriter = true, SingleReader = false, AllowSynchronousContinuations = false });
+    private static long _droppedSamples;   // ponytail: static — one raw-input service per process (see _activeInstance)
+    private readonly Channel<RawMotionSample> _channel = Channel.CreateBounded<RawMotionSample>(
+        new BoundedChannelOptions(16_384)
+        {
+            SingleWriter = true,
+            SingleReader = false,
+            AllowSynchronousContinuations = false,
+            FullMode = BoundedChannelFullMode.DropOldest
+        },
+        _ => Interlocked.Increment(ref _droppedSamples));
 
     private readonly HashSet<IntPtr> _devices = new();
     private readonly object _deviceLock = new();
@@ -30,6 +38,7 @@ public sealed class WindowsRawInputService : IRawInputService
     public MouseButtons CurrentButtons => (MouseButtons)Volatile.Read(ref _buttons);
     public bool IsReceiving { get { lock (_deviceLock) return _devices.Count > 0; } }
     public ChannelReader<RawMotionSample> Samples => _channel.Reader;
+    public long DroppedSamples => Volatile.Read(ref _droppedSamples);
     public event Action<int>? DeviceCountChanged;
 
     public void Start()
@@ -152,7 +161,7 @@ public sealed class WindowsRawInputService : IRawInputService
     private unsafe void HandleWmInput(IntPtr lParam)
     {
         QueryPerformanceCounter(out long qpc);
-        long tsUs = (long)(qpc * 1_000_000.0 / _qpcFreq);
+        long tsUs = (qpc / _qpcFreq) * 1_000_000L + ((qpc % _qpcFreq) * 1_000_000L) / _qpcFreq;
 
         uint size = 0;
         uint headerSize = (uint)Unsafe.SizeOf<RAWINPUTHEADER>();

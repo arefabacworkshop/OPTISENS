@@ -16,8 +16,16 @@ public sealed class EvdevInputService : IRawInputService
         public bool ButtonsChanged;
     }
 
-    private readonly Channel<RawMotionSample> _channel = Channel.CreateUnbounded<RawMotionSample>(
-        new UnboundedChannelOptions { SingleWriter = true, SingleReader = false, AllowSynchronousContinuations = false });
+    private static long _droppedSamples;   // ponytail: static — one raw-input service per process
+    private readonly Channel<RawMotionSample> _channel = Channel.CreateBounded<RawMotionSample>(
+        new BoundedChannelOptions(16_384)
+        {
+            SingleWriter = true,
+            SingleReader = false,
+            AllowSynchronousContinuations = false,
+            FullMode = BoundedChannelFullMode.DropOldest
+        },
+        _ => Interlocked.Increment(ref _droppedSamples));
 
     private readonly object _gate = new();
     private readonly List<DeviceState> _devices = new();
@@ -30,6 +38,7 @@ public sealed class EvdevInputService : IRawInputService
     public MouseButtons CurrentButtons => (MouseButtons)Volatile.Read(ref _buttons);
     public bool IsReceiving { get { lock (_gate) return _devices.Count > 0; } }
     public ChannelReader<RawMotionSample> Samples => _channel.Reader;
+    public long DroppedSamples => Volatile.Read(ref _droppedSamples);
     public event Action<int>? DeviceCountChanged;
 
     public void Start()

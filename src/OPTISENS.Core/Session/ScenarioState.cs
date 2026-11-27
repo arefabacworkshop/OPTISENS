@@ -412,7 +412,7 @@ public sealed class ScenarioState
 
     public static double AngularDistanceDeg(double yaw1, double pitch1, double yaw2, double pitch2)
     {
-        double dy = SignedYawDeltaDeg(yaw1, yaw2);
+        double dy = SignedYawDeltaDeg(yaw1, yaw2) * Math.Cos(((pitch1 + pitch2) * 0.5) * Math.PI / 180.0);
         double dp = pitch2 - pitch1;
         return Math.Sqrt(dy * dy + dp * dp);
     }

@@ -72,4 +72,20 @@ public static partial class CursorHelper
             CGAssociateMouseAndMouseCursorPosition(true);    // re-couple
         }
     }
+
+    /// <summary>Unconditionally resets lock depth and restores OS cursor (use on focus loss, abort, crash).</summary>
+    public static void ForceUnlockAndShow()
+    {
+        Interlocked.Exchange(ref _lockDepth, 0);
+        if (OperatingSystem.IsWindows())
+        {
+            ClipCursor(0);
+            if (_cursorHidden) { ShowCursor(true); _cursorHidden = false; }
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            CGDisplayShowCursor(CGMainDisplayID());
+            CGAssociateMouseAndMouseCursorPosition(true);
+        }
+    }
 }

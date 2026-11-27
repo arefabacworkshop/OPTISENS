@@ -1,0 +1,121 @@
+<UserControl x:Class="OPTISENS.App.Views.ArenaSettingsView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OPTISENS.App.ViewModels"
+             x:DataType="vm:ArenaSettingsViewModel"
+             x:CompileBindings="True">
+  <ScrollViewer Background="{StaticResource BgBaseBrush}">
+    <StackPanel MaxWidth="720" Margin="28" Spacing="20" HorizontalAlignment="Center">
+      <StackPanel Spacing="6">
+        <TextBlock Text="Arena &amp; crosshair" Classes="eyebrow"/>
+        <TextBlock Text="Crosshair, FOV &amp; sound" FontSize="24" FontWeight="SemiBold"
+                   Foreground="{StaticResource TextPrimaryBrush}"/>
+        <TextBlock Text="Changes apply to calibration sessions and the 30s warmup."
+                   TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+      </StackPanel>
+
+      <!-- Horizontal FOV -->
+      <Border Classes="card" Padding="18">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Text="HORIZONTAL FIELD OF VIEW" Classes="eyebrow" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1" Text="{Binding FovReadout}" Classes="mono-tabular" FontSize="13"
+                       Foreground="{StaticResource AccentCyanBrush}"/>
+          </Grid>
+          <Slider Minimum="90" Maximum="120" TickFrequency="1" IsSnapToTickEnabled="True"
+                  Value="{Binding FovDeg}"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Crosshair -->
+      <Border Classes="card" Padding="18">
+        <StackPanel Spacing="12">
+          <TextBlock Text="CROSSHAIR" Classes="eyebrow"/>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="pill-tab" Content="Cross" Command="{Binding SelectStyleCommand}" CommandParameter="Cross"
+                    Classes.active="{Binding IsCrossSelected}"/>
+            <Button Classes="pill-tab" Content="Dot" Command="{Binding SelectStyleCommand}" CommandParameter="Dot"
+                    Classes.active="{Binding IsDotSelected}"/>
+            <Button Classes="pill-tab" Content="Circle-Dot" Command="{Binding SelectStyleCommand}" CommandParameter="CircleDot"
+                    Classes.active="{Binding IsCircleDotSelected}"/>
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="pill-tab" Command="{Binding SelectColorCommand}" CommandParameter="#00E5FF">
+              <Border Width="18" Height="18" CornerRadius="999" Background="#00E5FF"/>
+            </Button>
+            <Button Classes="pill-tab" Command="{Binding SelectColorCommand}" CommandParameter="#2EE59D">
+              <Border Width="18" Height="18" CornerRadius="999" Background="#2EE59D"/>
+            </Button>
+            <Button Classes="pill-tab" Command="{Binding SelectColorCommand}" CommandParameter="#FFFFFF">
+              <Border Width="18" Height="18" CornerRadius="999" Background="#FFFFFF"/>
+            </Button>
+            <Button Classes="pill-tab" Command="{Binding SelectColorCommand}" CommandParameter="#FACC15">
+              <Border Width="18" Height="18" CornerRadius="999" Background="#FACC15"/>
+            </Button>
+            <Button Classes="pill-tab" Command="{Binding SelectColorCommand}" CommandParameter="#F472B6">
+              <Border Width="18" Height="18" CornerRadius="999" Background="#F472B6"/>
+            </Button>
+          </StackPanel>
+
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Text="CROSSHAIR SCALE" Classes="eyebrow" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1" Text="{Binding ScaleReadout}" Classes="mono-tabular" FontSize="13"
+                       Foreground="{StaticResource AccentCyanBrush}"/>
+          </Grid>
+          <Slider Minimum="0.6" Maximum="1.6" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                  Value="{Binding CrosshairScale}"/>
+
+          <!-- Live 120x120 preview -->
+          <Border Width="120" Height="120" CornerRadius="8" Background="#0B0D12"
+                  BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                  HorizontalAlignment="Center">
+            <Canvas x:Name="PreviewCanvas" Width="120" Height="120" RenderTransformOrigin="0.5,0.5">
+              <Canvas.RenderTransform>
+                <ScaleTransform ScaleX="1" ScaleY="1"/>
+              </Canvas.RenderTransform>
+              <!-- Dot -->
+              <Ellipse Width="4" Height="4" Fill="{Binding PreviewBrush}" Canvas.Left="58" Canvas.Top="58"
+                       IsVisible="{Binding IsDotSelected}"/>
+              <!-- Circle-Dot -->
+              <Ellipse Width="18" Height="18" Stroke="{Binding PreviewBrush}" StrokeThickness="1.5"
+                       Canvas.Left="51" Canvas.Top="51" IsVisible="{Binding IsCircleDotSelected}"/>
+              <Ellipse Width="4" Height="4" Fill="{Binding PreviewBrush}" Canvas.Left="58" Canvas.Top="58"
+                       IsVisible="{Binding IsCircleDotSelected}"/>
+              <!-- Cross -->
+              <Rectangle Width="2" Height="10" Fill="{Binding PreviewBrush}" Canvas.Left="59" Canvas.Top="46"
+                         IsVisible="{Binding IsCrossSelected}"/>
+              <Rectangle Width="2" Height="10" Fill="{Binding PreviewBrush}" Canvas.Left="59" Canvas.Top="64"
+                         IsVisible="{Binding IsCrossSelected}"/>
+              <Rectangle Width="10" Height="2" Fill="{Binding PreviewBrush}" Canvas.Left="46" Canvas.Top="59"
+                         IsVisible="{Binding IsCrossSelected}"/>
+              <Rectangle Width="10" Height="2" Fill="{Binding PreviewBrush}" Canvas.Left="64" Canvas.Top="59"
+                         IsVisible="{Binding IsCrossSelected}"/>
+            </Canvas>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <!-- Sound -->
+      <Border Classes="card" Padding="18">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Text="SOUND VOLUME" Classes="eyebrow" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1" Text="{Binding VolumeReadout}" Classes="mono-tabular" FontSize="13"
+                       Foreground="{StaticResource AccentCyanBrush}"/>
+          </Grid>
+          <Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                  Value="{Binding SoundVolume}"/>
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Classes="secondary" Content="Test Sound" Command="{Binding TestSoundCommand}" Padding="12,6"/>
+            <CheckBox Content="Mute" IsChecked="{Binding IsMuted}" VerticalAlignment="Center"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Button Content="Save &amp; Back" Command="{Binding SaveAndBackCommand}" Classes="cta"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14"/>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

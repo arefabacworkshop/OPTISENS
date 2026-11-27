@@ -2,6 +2,22 @@
 
 All notable changes to **OPTISENS** are documented in this file.
 
+## [1.0.0] - 2026-11-27
+
+### Added
+- **Calibration History & Saved Profiles (`SessionHistoryStore`):** Persists up to 50 completed calibrations and remembers your last DPI, mousepad width, and grip style. Open your last results and the 36+ game converter in one click from Hardware Profile.
+- **ADS / Scoped Sensitivity Calculator (`AdsProjection`):** Monitor Distance Vertical (0% Focal Length, 75%, 100%, 133% CS2 default) multipliers for CS2, Valorant, Overwatch 2, Apex Legends, and Call of Duty, plus one-click Markdown summary copy and JSON telemetry export.
+- **Arena, Crosshair & Warmup Customization (`ArenaSettingsView`):** Adjustable Horizontal FOV (90°–120°), Crosshair style/color/scale with live preview, audio volume slider, 30-second unscored Warmup mode, 3D target lifetime urgency rings, and miss flash feedback.
+- **`get_game_sensitivity` AI Tool:** AI Coach can now query exact sensitivities for all 36+ supported games via `ToolDispatcher`.
+- **Security, Resume & Crash Safety:** Windows DPAPI encryption (`SecretProtector`) for stored API keys, HTTP `Range` download resume for the local LFM3 model, one-click local model deletion, and global crash logging with guaranteed OS cursor unlock.
+- **Automated Tests & CI/CD:** Added `OPTISENS.App.Tests`, `AdsProjectionTests`, `SessionHistoryStoreTests`, and GitHub Actions CI + cross-platform Release workflows.
+
+### Fixed
+- Eliminated unbounded raw-input channel memory growth while idle across Windows, Linux, and macOS input services; raised `SampleRingCapacity` to `262,144` (8000 Hz safe) and `DpiMax` to `32,000`.
+- Fixed 64-bit QPC microsecond precision in `WindowsRawInputService` and added `DroppedSamples` tracking.
+- Enabled windowed-mode title-bar dragging (`BeginMoveDrag`), double-click fullscreen toggle, and automatic pause + `ForceUnlockAndShow()` on window focus loss (`Alt+Tab`).
+- Updated `ScenarioState.AngularDistanceDeg` with spherical `cos(midPitch)` foreshortening.
+
 ## [0.5.9] - 2026-11-27
 
 ### Added

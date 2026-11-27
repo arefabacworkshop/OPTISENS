@@ -1,74 +1,60 @@
 # OPTISENS User Guide
 
-This guide walks through every screen and feature in **OPTISENS** from first launch to your calibrated sensitivity and AI Coach session.
+This guide walks through every screen and feature in **OPTISENS** from launch to your calibrated sensitivity, 36+ game conversions, and optional AI Coach session.
 
 ---
 
-## 1. First-Run Setup & Asset Bootstrapper
+## 1. Opt-In AI Coach & Storage Settings
 
-When you launch OPTISENS for the first time, it checks whether the AI Coach model (`LiquidAI/LFM3-1.7B-ONNX`, ~1.66 GB) is already present and valid.
+OPTISENS starts with **AI Coach disabled by default**—zero forced downloads and instant startup. You can enable or reconfigure AI anytime from **Hardware Profile → Configure AI** or directly from the **Results Dashboard** without losing your calibration results:
 
-- **Default Location**: `<installation-folder>/models/LFM3-1.7B-ONNX` (or your previously saved location in `settings.json`).
-- **Custom Location**: Click **Choose…** to select any folder on another drive or shared directory, or click **Use default installation folder** to reset.
-- **Download & Verification**: Click **Continue** to download all 7 required model files (`config.json`, `generation_config.json`, `tokenizer.json`, `tokenizer_config.json`, `chat_template.jinja`, `onnx/model_q4.onnx`, `onnx/model_q4.onnx_data`) with live progress percentage, transfer speed, and ETA.
-- **Skip Option**: Click **Skip AI Coach for now** if you want to run calibration immediately without downloading the model.
-- **Subsequent Launches**: Every time you open OPTISENS, it checks the configured folder first. If all files pass size verification, setup finishes automatically and opens the main app.
+- **OpenAI-Compatible API (`0 MB`)**: Connect OpenAI, OpenRouter, Groq, Ollama, LM Studio, or any `/v1/chat/completions` endpoint with live connection testing. On Windows, API keys are encrypted via DPAPI (`SecretProtector`).
+- **Local Offline AI (`LiquidAI/LFM3-1.7B-ONNX`, ~1.66 GB)**: Download once into your chosen folder with live byte-weighted progress, ETA, HTTP `Range` resume if interrupted, and a **Delete Local Model** option to free disk space anytime.
 
 ---
 
-## 2. Hardware Profile
+## 2. Hardware Profile, History & Arena Customization
 
-Before calibration begins, enter your physical setup accurately:
+Before calibration begins, enter your physical setup (automatically remembered across launches):
 
-- **Mouse DPI** (`100` – `6400`): Your mouse sensor's active DPI setting. OPTISENS uses this to convert raw hardware counts into physical centimeters.
-- **Mousepad Usable Width (cm)** (`5` – `120`): The horizontal space you comfortably sweep across. OPTISENS bounds the search range to `[10.0, min(60.0, 2 × padWidthCm)]` cm/360 so you never get an unplayable sensitivity.
-- **Grip Style**: Choose your grip (`Palm Grip`, `Claw Grip`, or `Fingertip Grip`) so the AI Coach can contextualize micro-adjustment vs. arm-sweep feedback.
-
-Click **Start calibration** when ready.
+- **Mouse DPI** (`100` – `32,000`, with quick-pick pills): Your mouse sensor's active DPI setting.
+- **Mousepad Usable Width (cm)** (`5` – `120`): Bounds the optimizer search to `[10.0, min(60.0, 2 × padWidthCm)]` cm/360.
+- **Grip Style**: Choose **Palm**, **Claw**, or **Fingertip** grip.
+- **Input & DPI Check**: Swipe 10 cm on your mousepad to verify raw input polling rate (Hz) and physical DPI accuracy.
+- **Recent Calibrations & Converter**: Re-open any saved session (up to 50 stored locally) and jump straight into the **36+ Game Converter** without re-calibrating.
+- **30s Quick Warmup & Crosshair/FOV**: Run an unscored 30-second warmup or customize your horizontal FOV (`90°`–`120°`), crosshair style/color/scale, and audio volume.
 
 ---
 
 ## 3. Calibration Session
 
-Each session runs up to **6 adaptive rounds** (stopping early if the Bayesian optimizer converges). Each round tests a candidate `cm/360` across three aiming blocks:
+Each session runs up to **6 adaptive, iso-difficulty rounds** (`HORIZON`, `FLOW`, `ORBIT`, `WEAVE`, `PENDULUM`, `APEX`) with distinct tracking trajectories, flick geometries, and micro-dot clusters:
 
 | Phase | Duration | What You Do |
 | :--- | :--- | :--- |
 | **Round Intro** | 3 s | Get ready; cursor locks to the 3D viewport. |
-| **Block 1 — Tracking** | 15 s | Smoothly keep your crosshair on the moving 3D sphere. |
-| **Block 2 — Flick** | 15 s | Snap and click targets as they appear across wider angles. |
-| **Block 3 — Micro-Dot** | 10 s | Click small targets requiring fine micro-adjustments. |
-| **Rest** | 10 s | Brief pause between rounds while OPTISENS scores your kinematics and picks the next probe sensitivity. |
+| **Block 1 — Tracking** | 15 s | Smoothly keep your crosshair on the moving 3D sphere (**no clicking**). |
+| **Block 2 — Flick** | 15 s | Snap and left-click targets before their lifetime urgency ring expires. |
+| **Block 3 — Micro-Dot** | 10 s | Left-click small targets requiring fine micro-adjustments. |
+| **Rest** | 10 s | Brief pause showing Round BSI, accuracy, and next-round preview (`Space` skips rest). |
 
-> **Tip**: Press `Esc` during a session if you need to abort early. If at least one round was completed, partial results are still available.
-
-### Developer Overlay (`--dev`)
-
-Launch with `--dev` and press **`F12`** during a session to inspect:
-- Render FPS & raw mouse sample rate (Hz)
-- Active probe `cm/360`
-- $\ge 10\text{ cm}$ physical swipe ruler verification (`LastSwipeCm360`) to confirm your DPI and `cm/360` match a physical ruler on your desk.
+- Press **`Esc`** to pause/resume (timers freeze cleanly) or **`Alt+Tab`** (auto-pauses and unlocks the cursor). Press **`M`** to mute/unmute audio.
+- Launch with `--dev` and press **`F12`** for render FPS, raw polling rate, dropped samples, active probe `cm/360`, and $\ge 10\text{ cm}$ swipe ruler verification.
 
 ---
 
-## 4. Results Dashboard & Game Projections
+## 4. Results Dashboard, 36+ Game Converter & ADS Calculator
 
-Once calibration finishes, the **Results Dashboard** displays:
-
-- **Recommended `cm/360`**: Your optimal physical turn distance, highlighted alongside the high-confidence **recommendation band** (the range within `0.02` normalized BSI of the peak).
-- **Gaussian Process Curve**: Visual plot of tested `cm/360` probes (observations) and the continuous predicted performance curve with uncertainty bounds.
-- **Per-Round Breakdown**: Table showing each tested `cm/360`, **BSI** (0–100), **Accuracy**, **Jerk**, and **Flick Overshoot**.
+- **Recommended `cm/360` / `in/360`**: Optimal physical turn distance with plausible confidence band, eDPI readout, interactive Gaussian Process posterior curve, and per-round kinematic breakdown.
+- **36+ Game Sensitivity Converter**: Search by name, filter by category or pinned favorites, copy raw values or console config commands (`sensitivity "..."`), and use **Compare / Convert From Existing Game** to preview your current game's `cm/360`.
+- **ADS / Scoped Calculator**: Monitor Distance Vertical (`0% Focal`, `75%`, `100%`, `133.3% CS2`) multipliers for CS2, Valorant, Overwatch 2, Apex Legends, and Call of Duty.
+- **Export & Share**: Copy a formatted Markdown summary or export full session telemetry as JSON.
 
 ---
 
-## 5. Local AI Coach
+## 5. Optional AI Coach
 
-Below your results, the embedded **OPTISENS AI Coach** (`LFM3-1.7B-ONNX`) runs 100% locally on your machine with no cloud API calls.
-
-You can ask things like:
+When enabled, ask natural-language questions about your telemetry or adjustments:
 - *"Why did this sensitivity score highest for me?"*
-- *"Convert my recommended cm/360 to Valorant and CS2."*
+- *"What is my Apex Legends or Fortnite sensitivity?"* (uses the deterministic `get_game_sensitivity` tool across all 36+ games)
 - *"Make it 5% slower and give me the new Overwatch 2 sensitivity."*
-- *"My tracking felt shaky—what should I adjust?"*
-
-The coach uses built-in tool calls to read your telemetry, compute exact engine sensitivities, and log adjustments safely.

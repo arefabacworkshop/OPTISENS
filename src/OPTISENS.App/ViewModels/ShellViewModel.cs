@@ -33,7 +33,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
     public string AppVersion { get; } =
         "v" + (typeof(ShellViewModel).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion.Split('+')[0] ?? "0.5.9");
+            .InformationalVersion.Split('+')[0] ?? "1.0.0");
 
     private HardwareProfileViewModel? _activeProfileVm;
     private HardwareProfile _activeProfile;
@@ -103,8 +103,41 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         hw.ProfileReady += OnProfileReady;
         hw.AiSettingsRequested += () => OpenAiSetup(returnToResults: false, preselectMode: null);
         hw.TestGuideRequested += () => OpenTestGuide(pendingProfile: null);
+        hw.OpenHistoryEntryRequested += OpenFromHistory;
+        hw.WarmupRequested += StartWarmupSession;
+        hw.ArenaSettingsRequested += OpenArenaSettings;
         _activeProfileVm = hw;
         return hw;
+    }
+
+    private void OpenArenaSettings()
+    {
+        _activeProfileVm?.Dispose();
+        _activeProfileVm = null;
+        var arenaVm = new ArenaSettingsViewModel();
+        arenaVm.SaveAndBackRequested += () => CurrentPage = CreateHardwareProfileVm();
+        CurrentPage = arenaVm;
+    }
+
+    private void StartWarmupSession(HardwareProfile profile)
+    {
+        _activeResults?.Coach.Dispose();
+        _activeResults = null;
+        _activeSession?.Dispose();
+        _activeSession = null;
+
+        var sessionVm = new SessionViewModel(_input, profile, _devMode, isWarmup: true);
+        sessionVm.WarmupFinished += () =>
+        {
+            _activeSession?.Dispose();
+            _activeSession = null;
+            CurrentPage = CreateHardwareProfileVm();
+        };
+        _activeSession = sessionVm;
+        sessionVm.ReturnToMenuRequested += NavigateToProfile;
+        sessionVm.ExitRequested += ShutdownApp;
+        CurrentPage = sessionVm;
+        sessionVm.StartEngine();
     }
 
     private void OpenTestGuide(HardwareProfile? pendingProfile)
@@ -163,13 +196,21 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         OptimizationReport report,
         IReadOnlyList<RoundScore> scores,
         IReadOnlyList<RoundInvalidReason> invalid,
-        bool partial)
+        bool partial,
+        bool saveToHistory = true,
+        string? telemetryJsonOverride = null)
     {
         var (lo, hi) = ProbeBounds.Compute(profile.PadWidthCm);
         var telemetry = TelemetryBuilder.Build(
             profile.Dpi, profile.PadWidthCm, profile.Grip.ToString().ToLowerInvariant(),
             lo, hi, scores, report);
-        string json = TelemetryBuilder.ToJson(telemetry);
+        string json = telemetryJsonOverride ?? TelemetryBuilder.ToJson(telemetry);
+
+        if (saveToHistory)
+        {
+            try { SessionHistoryStore.Append(BuildHistoryEntry(profile, report, scores, partial, json)); }
+            catch { /* history must never break results */ }
+        }
 
         _lastTelemetryJson = json;
         _lastReport = report;
@@ -182,6 +223,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         resultsVm.BackToMenuRequested += NavigateToProfile;
         resultsVm.RecalibrateRequested += () => OnProfileReady(profile);
         resultsVm.LoadReport(report, scores, invalid, profile.Dpi, partial);
+        resultsVm.RawTelemetryJson = json;
         _activeResults = resultsVm;
         CurrentPage = resultsVm;
 
@@ -239,7 +281,75 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
             invalid.Add(RoundInvalidReason.None);
         }
 
-        ShowResults(profile, opt.Report(), scores, invalid, partial: false);
+        ShowResults(profile, opt.Report(), scores, invalid, partial: false, saveToHistory: false);
+    }
+
+    private static CalibrationHistoryEntry BuildHistoryEntry(
+        HardwareProfile profile,
+        OptimizationReport report,
+        IReadOnlyList<RoundScore> scores,
+        bool partial,
+        string telemetryJson)
+    {
+        var rounds = new HistoryRoundRecord[scores.Count];
+        for (int i = 0; i < scores.Count; i++)
+        {
+            var s = scores[i];
+            double noiseVar = i < report.Observations.Length ? report.Observations[i].NoiseVar : 0.0;
+            rounds[i] = new HistoryRoundRecord(
+                s.Cm360, s.YNorm, noiseVar,
+                s.Components.Accuracy, s.Components.NormJerk, s.Components.EFlickAbs, s.Components.TAdjustNorm);
+        }
+        var curve = report.Curve.Select(c => new HistoryCurvePoint(c.Cm360, c.Mean, c.Std)).ToArray();
+        return new CalibrationHistoryEntry(
+            Guid.NewGuid().ToString("N"),
+            DateTime.UtcNow.ToString("O"),
+            profile.Dpi,
+            profile.PadWidthCm,
+            profile.Grip.ToString(),
+            report.RecommendedCm360,
+            report.BandLoCm360,
+            report.BandHiCm360,
+            report.PosteriorMean,
+            report.PosteriorStd,
+            partial,
+            telemetryJson,
+            rounds,
+            curve);
+    }
+
+    /// <summary>Rebuilds a Results page from a persisted calibration history entry (no new history row).</summary>
+    private void OpenFromHistory(CalibrationHistoryEntry entry)
+    {
+        _activeProfileVm?.Dispose();
+        _activeProfileVm = null;
+        _activeResults?.Coach.Dispose();
+        _activeResults = null;
+        _activeSession?.Dispose();
+        _activeSession = null;
+
+        var report = new OptimizationReport(
+            entry.RecommendedCm360,
+            entry.BandLoCm360,
+            entry.BandHiCm360,
+            entry.PosteriorMean,
+            entry.PosteriorStd,
+            entry.Rounds.Select(r => (r.ProbeCm360, r.YNorm, r.NoiseVar)).ToArray(),
+            entry.Curve.Select(c => (c.Cm360, c.Mean, c.Std)).ToArray());
+
+        var scores = entry.Rounds.Select(r => new RoundScore(
+            r.ProbeCm360,
+            r.YNorm,
+            new BsiComponents(r.Accuracy, r.NormJerk, r.EFlickAbs, r.TAdjustNorm),
+            Array.Empty<BlockMetrics>(),
+            0)).ToArray();
+
+        var grip = Enum.TryParse<GripStyle>(entry.Grip, ignoreCase: true, out var g) ? g : GripStyle.Palm;
+        var profile = new HardwareProfile(entry.Dpi, entry.PadWidthCm, grip);
+
+        ShowResults(
+            profile, report, scores, Array.Empty<RoundInvalidReason>(), entry.Partial,
+            saveToHistory: false, telemetryJsonOverride: entry.TelemetryJson);
     }
 
     public void NavigateToProfile()

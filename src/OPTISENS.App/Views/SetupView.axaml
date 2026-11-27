@@ -289,6 +289,12 @@
                     Padding="14,12" CornerRadius="12"
                     Background="#24FFFFFF" Foreground="#F2F5FA" FontWeight="Medium" FontSize="14"/>
 
+            <Button Content="Delete Local Model" Command="{Binding DeleteLocalModelCommand}"
+                    IsVisible="{Binding ShowDeleteLocalModel}"
+                    HorizontalAlignment="Center" Background="Transparent"
+                    BorderBrush="#66EF4444" BorderThickness="1" CornerRadius="8"
+                    Foreground="#EF4444" FontSize="12" Padding="12,5"/>
+
             <Button Content="Back" Command="{Binding CancelReconfigureCommand}"
                     IsVisible="{Binding IsReconfigure}"
                     HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"

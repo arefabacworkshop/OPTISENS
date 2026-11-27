@@ -65,6 +65,11 @@ public partial class CalibrationSessionView : UserControl
             vm.SkipRestCommand.Execute(null);
             e.Handled = true;
         }
+        else if (e.Key == Key.M)
+        {
+            vm.ToggleMuteCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     private void LockCursor()

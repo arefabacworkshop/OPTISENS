@@ -1,6 +1,8 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
+using OPTISENS.App.Services;
 using OPTISENS.Core.Coaching;
 using OPTISENS.Core.Config;
 using OPTISENS.Core.Input;
@@ -16,10 +18,22 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
     private readonly IRawInputService _input;
     private readonly bool _devMode;
     private string _modelDir;
-    private bool _skipAi;
+    private bool _cliSkipAi;
+    private string? _lastTelemetryJson;
+    private OptimizationReport? _lastReport;
+    private double _lastBoundsLo;
+    private double _lastBoundsHi;
 
-    [ObservableProperty] private ViewModelBase _currentPage;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsWindowBarVisible))]
+    private ViewModelBase _currentPage;
     [ObservableProperty] private string? _remediationBanner;
+
+    public bool IsWindowBarVisible => CurrentPage is not SessionViewModel;
+    public string AppVersion { get; } =
+        "v" + (typeof(ShellViewModel).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion.Split('+')[0] ?? "0.5.9");
 
     private HardwareProfileViewModel? _activeProfileVm;
     private HardwareProfile _activeProfile;
@@ -31,7 +45,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         _input = input;
         _modelDir = modelDir;
         _devMode = devMode;
-        _skipAi = skipAi;
+        _cliSkipAi = skipAi;
         _remediationBanner = startupError;
 
         _input.DeviceCountChanged += count =>
@@ -43,41 +57,27 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         };
 
         var settings = AppSettingsStore.Load();
-        if (!settings.HasCompletedSetup &&
-            !string.IsNullOrWhiteSpace(settings.AssetsDirectory) &&
-            AssetManifest.CheckAssets(_modelDir).IsReady)
-        {
-            settings = settings with { HasCompletedSetup = true, AiMode = AiProviderMode.LocalLfm3 };
-            AppSettingsStore.Save(settings);
-        }
-
-        bool needsSetup = !_skipAi &&
-            (!settings.HasCompletedSetup ||
-             (settings.AiMode == AiProviderMode.LocalLfm3 && !AssetManifest.CheckAssets(_modelDir).IsReady));
-
-        if (needsSetup)
-        {
-            _currentPage = CreateSetupVm(settings, isReconfigure: false, returnToResults: false);
-        }
-        else
-        {
-            if (settings.AiMode == AiProviderMode.Disabled)
-                _skipAi = true;
-            _currentPage = CreateHardwareProfileVm();
-        }
+        SoundEffectsService.Muted = settings.SoundMuted;
+        // Fresh installs start on Hardware Profile with AI off and zero forced downloads.
+        _currentPage = CreateHardwareProfileVm();
     }
 
-    private SetupViewModel CreateSetupVm(AppSettings settings, bool isReconfigure, bool returnToResults)
+    private SetupViewModel CreateSetupVm(
+        AppSettings settings, bool isReconfigure, bool returnToResults, AiProviderMode? preselectMode = null)
     {
-        var setupVm = new SetupViewModel(_modelDir, settings, isReconfigure);
+        var setupVm = new SetupViewModel(_modelDir, settings, isReconfigure, preselectMode);
         setupVm.SetupCompleted += (resolvedDir, skip) =>
         {
             _modelDir = resolvedDir;
-            _skipAi = skip;
-            if (returnToResults && _activeResults is not null)
+            if (returnToResults && _activeResults is not null &&
+                _lastTelemetryJson is not null && _lastReport is not null)
             {
-                _activeResults.Coach.Dispose();
-                _activeResults = null;
+                CurrentPage = _activeResults;
+                _ = _activeResults.Coach.ReinitializeAsync(
+                    _modelDir, _cliSkipAi, _lastTelemetryJson,
+                    _activeResults.ActiveCm360, (double)_activeResults.EditableDpi,
+                    _lastBoundsLo, _lastBoundsHi);
+                return;
             }
             CurrentPage = CreateHardwareProfileVm();
         };
@@ -90,10 +90,10 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         return setupVm;
     }
 
-    private void OpenAiSetup(bool returnToResults)
+    private void OpenAiSetup(bool returnToResults, AiProviderMode? preselectMode = null)
     {
         var settings = AppSettingsStore.Load();
-        CurrentPage = CreateSetupVm(settings, isReconfigure: true, returnToResults: returnToResults);
+        CurrentPage = CreateSetupVm(settings, isReconfigure: true, returnToResults, preselectMode);
     }
 
     private HardwareProfileViewModel CreateHardwareProfileVm()
@@ -101,7 +101,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         _activeProfileVm?.Dispose();
         var hw = new HardwareProfileViewModel(_input);
         hw.ProfileReady += OnProfileReady;
-        hw.AiSettingsRequested += () => OpenAiSetup(returnToResults: false);
+        hw.AiSettingsRequested += () => OpenAiSetup(returnToResults: false, preselectMode: null);
         hw.TestGuideRequested += () => OpenTestGuide(pendingProfile: null);
         _activeProfileVm = hw;
         return hw;
@@ -171,8 +171,13 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
             lo, hi, scores, report);
         string json = TelemetryBuilder.ToJson(telemetry);
 
+        _lastTelemetryJson = json;
+        _lastReport = report;
+        _lastBoundsLo = lo;
+        _lastBoundsHi = hi;
+
         var coachVm = new CoachViewModel();
-        coachVm.ConfigureAiRequested += () => OpenAiSetup(returnToResults: true);
+        coachVm.ConfigureAiRequested += mode => OpenAiSetup(returnToResults: true, preselectMode: mode);
         var resultsVm = new ResultsViewModel(coachVm);
         resultsVm.BackToMenuRequested += NavigateToProfile;
         resultsVm.RecalibrateRequested += () => OnProfileReady(profile);
@@ -180,7 +185,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         _activeResults = resultsVm;
         CurrentPage = resultsVm;
 
-        _ = coachVm.InitializeAsync(_modelDir, _skipAi, json, report.RecommendedCm360, profile.Dpi, lo, hi);
+        _ = coachVm.InitializeAsync(_modelDir, _cliSkipAi, json, report.RecommendedCm360, profile.Dpi, lo, hi);
         _activeSession?.Dispose();
         _activeSession = null;
     }

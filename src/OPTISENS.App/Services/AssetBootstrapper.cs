@@ -29,6 +29,8 @@ public sealed class AssetBootstrapper
         CancellationToken ct = default)
     {
         Directory.CreateDirectory(targetDirectory);
+        long totalExpectedBytes = missingFiles.Sum(f => Math.Max(1L, f.MinBytes));
+        long completedBytes = 0;
 
         for (int i = 0; i < missingFiles.Count; i++)
         {
@@ -65,10 +67,11 @@ public sealed class AssetBootstrapper
                         double sec = Math.Max(0.05, elapsedMs / 1000.0);
                         double speedBps = downloaded / sec;
                         double speedMBps = speedBps / (1024.0 * 1024.0);
-                        double fileFrac = contentLen is > 0 ? Math.Clamp((double)downloaded / contentLen.Value, 0, 1) : 0;
-                        double overallFrac = (i + fileFrac) / missingFiles.Count;
-                        TimeSpan? eta = contentLen is > 0 && speedBps > 1
-                            ? TimeSpan.FromSeconds((contentLen.Value - downloaded) / speedBps)
+                        long fileExpected = contentLen is > 0 ? contentLen.Value : Math.Max(1L, spec.MinBytes);
+                        long bytesSoFar = completedBytes + downloaded;
+                        double overallFrac = Math.Clamp(bytesSoFar / (double)Math.Max(1L, totalExpectedBytes), 0.0, 1.0);
+                        TimeSpan? eta = speedBps > 1
+                            ? TimeSpan.FromSeconds(Math.Max(0, totalExpectedBytes - bytesSoFar) / speedBps)
                             : null;
 
                         progress.Report(new AssetDownloadProgress(
@@ -92,6 +95,7 @@ public sealed class AssetBootstrapper
             onFileCompleted?.Invoke(spec.RelativePath, ok);
             if (!ok)
                 throw new InvalidDataException($"Downloaded file '{spec.RelativePath}' failed size check ({fi.Length} < {spec.MinBytes} bytes).");
+            completedBytes += fi.Length;
         }
     }
 }

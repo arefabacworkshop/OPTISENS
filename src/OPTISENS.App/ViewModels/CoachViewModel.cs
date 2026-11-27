@@ -37,9 +37,12 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
     private InferenceBackendMode _backendMode = InferenceBackendMode.DirectMlGpu;
     private List<ChatMessage> _historySnapshot = [];
     private DispatcherTimer? _idleTimer;
+    private CancellationTokenSource? _turnCts;
 
     [ObservableProperty] private bool _isLocalAiMode = true;
-    [ObservableProperty] private bool _isAiDisabled;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SendCommand))]
+    private bool _isAiDisabled;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
@@ -63,10 +66,34 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
     public ObservableCollection<ChatLine> Transcript { get; } = new();
 
     public event Action<double>? Cm360Adjusted;
-    public event Action? ConfigureAiRequested;
+    public event Action<AiProviderMode?>? ConfigureAiRequested;
 
     [RelayCommand]
-    private void ConfigureAi() => ConfigureAiRequested?.Invoke();
+    private void ConfigureAi() => ConfigureAiRequested?.Invoke(null);
+
+    [RelayCommand]
+    private void ConfigureLocalAi() => ConfigureAiRequested?.Invoke(AiProviderMode.LocalLfm3);
+
+    [RelayCommand]
+    private void ConfigureApiAi() => ConfigureAiRequested?.Invoke(AiProviderMode.OpenAiCompatible);
+
+    public void UpdateDpi(double dpi) => _dispatcher?.UpdateDpi(dpi);
+
+    /// <summary>Re-arms the coach with fresh calibration data (e.g. after AI setup from Results).</summary>
+    public async Task ReinitializeAsync(
+        string modelDir,
+        bool skipAi,
+        string telemetryJson,
+        double initialCm360,
+        double dpi,
+        double boundsLo,
+        double boundsHi)
+    {
+        CancelTurn();
+        CaptureAndDetach();
+        Transcript.Clear();
+        await InitializeAsync(modelDir, skipAi, telemetryJson, initialCm360, dpi, boundsLo, boundsHi);
+    }
 
     public async Task InitializeAsync(
         string modelDir,
@@ -98,7 +125,7 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
             IsAiDisabled = true;
             IsLocalAiMode = false;
             ProviderBadge = "OFF";
-            StatusBanner = "AI Coach is disabled. Enable Local LFM3 or an OpenAI-compatible API anytime.";
+            StatusBanner = "";
             return;
         }
 
@@ -257,11 +284,13 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
 
     private List<ChatMessage> CaptureAndDetach()
     {
+        CancelTurn();
         _historySnapshot = _session?.History.ToList() ?? _historySnapshot;
         _session?.Dispose();
         _session = null;
         _engine?.Dispose();
         _engine = null;
+        IsModelLoaded = false;
         return _historySnapshot;
     }
 
@@ -306,6 +335,8 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
     private async Task RunTurnAsync(string text, bool showUserLine)
     {
         if (_session is null) return;
+        CancelTurn();
+        _turnCts = new CancellationTokenSource();
         IsBusy = true;
         if (showUserLine)
             Transcript.Add(new ChatLine("> ", text, ChatLine.UserBrush));
@@ -322,8 +353,12 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
                     streamed.Append(token);
                     line.Text = streamed.ToString();
                 }),
-                CancellationToken.None);
+                _turnCts.Token);
             line.Text = reply;
+        }
+        catch (OperationCanceledException)
+        {
+            line.Text = streamed.Length > 0 ? streamed.ToString() : "(cancelled)";
         }
         catch (Exception ex)
         {
@@ -336,12 +371,20 @@ public partial class CoachViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private void CancelTurn()
+    {
+        _turnCts?.Cancel();
+        _turnCts?.Dispose();
+        _turnCts = null;
+    }
+
     private bool CanSend() =>
         !IsAiDisabled && !IsBusy && !IsLoading && !string.IsNullOrWhiteSpace(InputText) &&
         (_session is not null || (IsLocalAiMode && _modelDir is not null));
 
     public void Dispose()
     {
+        CancelTurn();
         _idleTimer?.Stop();
         _idleTimer = null;
         _session?.Dispose();

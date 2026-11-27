@@ -33,6 +33,9 @@ public sealed class ScenarioState
     private double _targetExpiryS;
     private double _targetSignedAzimuthDeg;
     private int _flickSign = 1;
+    private int _flickStep;
+    private int _cascadeCount;
+    private int _cascadeDirection = 1;
     private int _dotsSpawned;
     private double _lastDotYawOffset;
     private double _lastDotPitchOffset;
@@ -40,9 +43,11 @@ public sealed class ScenarioState
 
     public ScenarioState(int roundIndex, int sessionSalt = 1337)
     {
+        Variant = RoundVariant.ForRound(roundIndex);
         _rng = new Random(roundIndex * 7919 + sessionSalt);
     }
 
+    public RoundVariant Variant { get; }
     public BlockKind ActiveBlock => _activeBlock;
     public TargetSphere[] CurrentTargets { get; private set; } = Array.Empty<TargetSphere>();
     public double LiveTrackingAccuracy => _trackingTicks > 0 ? (double)_trackingOnTargetTicks / _trackingTicks : 0;
@@ -70,6 +75,9 @@ public sealed class ScenarioState
         {
             _flickAttempts.Clear();
             _flickSign = 1;
+            _flickStep = 0;
+            _cascadeCount = 0;
+            _cascadeDirection = 1;
             _prevTargetYawDeg = _anchorYawDeg;
             _prevTargetPitchDeg = _anchorPitchDeg;
             SpawnFlickTarget(nowS, yawDeg, pitchDeg);
@@ -94,14 +102,9 @@ public sealed class ScenarioState
             case BlockKind.Tracking:
             {
                 double t = nowS - _blockStartS;
-                // Smooth multi-frequency strafe curve (primary + secondary harmonic for reactive reversals)
-                double rawYawOffset = Constants.SphereAmpXDeg * (
-                    0.75 * Math.Sin(2 * Math.PI * Constants.SphereFreqXHz * t) +
-                    0.25 * Math.Sin(2 * Math.PI * (Constants.SphereFreqXHz * 2.3) * t));
-                double tx = WrapYaw(_anchorYawDeg + rawYawOffset);
-                double ty = Math.Clamp(
-                    _anchorPitchDeg + Constants.SphereAmpYDeg * Math.Sin(2 * Math.PI * Constants.SphereFreqYHz * t + Constants.SpherePhaseRad),
-                    -75.0, 75.0);
+                var (yawOffset, pitchOffset) = ComputeTrackingOffset(Variant.Tracking, t);
+                double tx = WrapYaw(_anchorYawDeg + yawOffset);
+                double ty = Math.Clamp(_anchorPitchDeg + pitchOffset, -75.0, 75.0);
 
                 double dist = AngularDistanceDeg(yawDeg, pitchDeg, tx, ty);
                 _trackingTicks++;
@@ -195,19 +198,47 @@ public sealed class ScenarioState
         return outcome;
     }
 
+    /// <summary>Clears the active target at block end without recording an unearned miss.</summary>
     public void SealActiveBlock(double nowS)
     {
-        if (_hasTarget && _activeBlock == BlockKind.Flick)
-        {
-            _flickAttempts.Add(new Attempt(BlockKind.Flick, _targetOnsetS, null, _targetSignedAzimuthDeg, _targetRadiusDeg, false, nowS));
-        }
-        else if (_hasTarget && _activeBlock == BlockKind.Dot)
-        {
-            _dotAttempts.Add(new Attempt(BlockKind.Dot, _targetOnsetS, null, _targetSignedAzimuthDeg, _targetRadiusDeg, false, nowS));
-        }
         _hasTarget = false;
         CurrentTargets = Array.Empty<TargetSphere>();
     }
+
+    /// <summary>Shifts all live timestamps forward so targets and curves survive a pause.</summary>
+    public void ShiftTime(double deltaS)
+    {
+        if (deltaS <= 0) return;
+        _blockStartS += deltaS;
+        if (_hasTarget)
+        {
+            _targetOnsetS += deltaS;
+            _targetExpiryS += deltaS;
+        }
+    }
+
+    /// <summary>Iso-speed tracking curves: all stay within ±20° yaw / ±12° pitch.</summary>
+    public static (double Yaw, double Pitch) ComputeTrackingOffset(TrackingPattern pattern, double t) => pattern switch
+    {
+        TrackingPattern.HorizonStrafe => (
+            Constants.SphereAmpXDeg * (0.75 * Math.Sin(2 * Math.PI * 0.18 * t) + 0.25 * Math.Sin(2 * Math.PI * 0.414 * t)),
+            Constants.SphereAmpYDeg * Math.Sin(2 * Math.PI * 0.13 * t + Math.PI / 3.0)),
+        TrackingPattern.FigureEightFlow => (
+            Constants.SphereAmpXDeg * Math.Sin(2 * Math.PI * 0.17 * t),
+            9.0 * Math.Sin(4 * Math.PI * 0.17 * t)),
+        TrackingPattern.DiagonalGlide => (
+            17.0 * Math.Cos(2 * Math.PI * 0.16 * t),
+            10.0 * Math.Sin(2 * Math.PI * 0.16 * t + Math.PI / 6.0) + 3.0 * Math.Cos(2 * Math.PI * 0.32 * t)),
+        TrackingPattern.ReactiveWeave => (
+            Constants.SphereAmpXDeg * (0.65 * Math.Sin(2 * Math.PI * 0.19 * t) + 0.35 * Math.Cos(2 * Math.PI * 0.37 * t)),
+            8.0 * Math.Sin(2 * Math.PI * 0.14 * t)),
+        TrackingPattern.PendulumArc => (
+            19.0 * Math.Sin(2 * Math.PI * 0.17 * t),
+            -8.0 * Math.Cos(4 * Math.PI * 0.17 * t) + 2.0),
+        _ => (
+            17.0 * (0.7 * Math.Sin(2 * Math.PI * 0.18 * t) + 0.3 * Math.Sin(2 * Math.PI * 0.34 * t + 0.8)),
+            9.0 * (0.75 * Math.Cos(2 * Math.PI * 0.15 * t) + 0.25 * Math.Sin(2 * Math.PI * 0.30 * t)))
+    };
 
     private void SpawnFlickTarget(double nowS, double yawDeg, double pitchDeg)
     {
@@ -225,9 +256,59 @@ public sealed class ScenarioState
         }
 
         double mag = Constants.FlickAzMinDeg + _rng.NextDouble() * (Constants.FlickAzMaxDeg - Constants.FlickAzMinDeg);
-        double signedAz = _flickSign * mag;
-        _flickSign = -_flickSign;
-        double el = (_rng.NextDouble() * 2.0 - 1.0) * Constants.FlickElMaxDeg;
+        double signedAz;
+        double el;
+        _flickStep++;
+
+        switch (Variant.Flick)
+        {
+            case FlickPattern.DiagonalCross:
+                signedAz = _flickSign * mag * 0.92;
+                el = _flickSign * (5.0 + _rng.NextDouble() * 6.0);
+                _flickSign = -_flickSign;
+                break;
+            case FlickPattern.CenterReturnHub:
+                double toAnchor = SignedYawDeltaDeg(yawDeg, WrapYaw(_anchorYawDeg));
+                if (_flickSign > 0)
+                {
+                    signedAz = mag;
+                    _flickSign = -1;
+                }
+                else
+                {
+                    signedAz = Math.Abs(toAnchor) >= 20.0 ? toAnchor : -mag;
+                    _flickSign = 1;
+                }
+                el = (_rng.NextDouble() * 2.0 - 1.0) * 4.0;
+                break;
+            case FlickPattern.CompassStar:
+                double theta = 2.0 * Math.PI * (_flickStep % 8) / 8.0;
+                signedAz = Math.Cos(theta) * mag;
+                el = Math.Clamp(Math.Sin(theta) * 11.0, -Constants.FlickElMaxDeg - 1.0, Constants.FlickElMaxDeg + 1.0);
+                break;
+            case FlickPattern.DoubleStepCascade:
+                if (_cascadeCount >= 2)
+                {
+                    _cascadeDirection = -_cascadeDirection;
+                    _cascadeCount = 0;
+                }
+                signedAz = _cascadeDirection * (24.0 + _rng.NextDouble() * 12.0);
+                _cascadeCount++;
+                el = (_rng.NextDouble() * 2.0 - 1.0) * 6.0;
+                break;
+            case FlickPattern.DynamicMix:
+                signedAz = _flickSign > 0 ? mag : -mag * 0.92;
+                el = _flickSign > 0
+                    ? (_rng.NextDouble() * 2.0 - 1.0) * 6.0
+                    : -(5.0 + _rng.NextDouble() * 6.0);
+                _flickSign = -_flickSign;
+                break;
+            default:
+                signedAz = _flickSign * mag;
+                _flickSign = -_flickSign;
+                el = (_rng.NextDouble() * 2.0 - 1.0) * Constants.FlickElMaxDeg;
+                break;
+        }
 
         _targetSignedAzimuthDeg = signedAz;
         _targetYawDeg = WrapYaw(yawDeg + signedAz);
@@ -266,8 +347,7 @@ public sealed class ScenarioState
         double ox = 0, oy = 0;
         for (int attempt = 0; attempt < 20; attempt++)
         {
-            ox = (_rng.NextDouble() * 2.0 - 1.0) * half;
-            oy = (_rng.NextDouble() * 2.0 - 1.0) * half;
+            (ox, oy) = SampleDotOffset(Variant.Dot, half, _dotsSpawned);
             double dx = ox - _lastDotYawOffset;
             double dy = oy - _lastDotPitchOffset;
             if (Math.Sqrt(dx * dx + dy * dy) >= Constants.DotMinSepDeg) break;
@@ -285,6 +365,35 @@ public sealed class ScenarioState
         _targetExpiryS = nowS + Constants.DotLifeS;
         _hasTarget = true;
         CurrentTargets = [new TargetSphere(_targetYawDeg, _targetPitchDeg, _targetRadiusDeg, false, 1.0, 0.0, _hasPrevTarget, _prevTargetYawDeg, _prevTargetPitchDeg)];
+    }
+
+    private (double X, double Y) SampleDotOffset(DotPattern pattern, double half, int index)
+    {
+        switch (pattern)
+        {
+            case DotPattern.RingCluster:
+            {
+                double a = 2.0 * Math.PI * (index % 4) / 4.0;
+                return (Math.Cos(a) * 4.5, Math.Sin(a) * 4.5);
+            }
+            case DotPattern.HeadLevelLine:
+                return ((_rng.NextDouble() * 2.0 - 1.0) * half, (_rng.NextDouble() * 2.0 - 1.0) * 1.2);
+            case DotPattern.CrosshairDiamond:
+            {
+                double a = Math.PI * (index % 8) / 4.0;
+                double r = 3.5 + (index % 2) * 2.0;
+                return (Math.Cos(a) * r, Math.Sin(a) * r);
+            }
+            case DotPattern.AscendingArc:
+            {
+                double x = (_rng.NextDouble() * 2.0 - 1.0) * 5.5;
+                return (x, 3.5 * Math.Sin(x / 5.5 * Math.PI / 2.0) + (_rng.NextDouble() * 2.0 - 1.0));
+            }
+            case DotPattern.FinaleCluster:
+                return ((_rng.NextDouble() * 2.0 - 1.0) * 5.5, (_rng.NextDouble() * 2.0 - 1.0) * 2.5);
+            default:
+                return ((_rng.NextDouble() * 2.0 - 1.0) * half, (_rng.NextDouble() * 2.0 - 1.0) * half);
+        }
     }
 
     public static double WrapYaw(double yaw)

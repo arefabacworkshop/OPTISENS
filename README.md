@@ -3,7 +3,7 @@
   <br /><br />
 
   <p>
-    <img src="https://img.shields.io/badge/Version-0.5.8-00E5FF?style=flat-square" alt="Version 0.5.8" />
+    <img src="https://img.shields.io/badge/Version-0.5.9-00E5FF?style=flat-square" alt="Version 0.5.9" />
     <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet" alt=".NET 10" />
     <img src="https://img.shields.io/badge/UI-Avalonia%2011-8B5CF6?style=flat-square" alt="Avalonia 11" />
     <img src="https://img.shields.io/badge/Renderer-OpenGL%203.3-5586A4?style=flat-square&logo=opengl" alt="OpenGL 3.3" />
@@ -62,10 +62,10 @@ Download the latest Windows `.msi` installer from the **[GitHub Releases page](h
 To build the Windows installers from source:
 
 ```powershell
-# Build .msi installer (WiX v5) -> dist/installer/OPTISENS-0.5.8-win-x64.msi
+# Build .msi installer (WiX v5) -> dist/installer/OPTISENS-0.5.9-win-x64.msi
 powershell -ExecutionPolicy Bypass -File packaging/windows/build-msi.ps1
 
-# Or build Inno Setup .exe wizard -> dist/installer/OPTISENSSetup-0.5.8-win-x64.exe
+# Or build Inno Setup .exe wizard -> dist/installer/OPTISENSSetup-0.5.9-win-x64.exe
 powershell -ExecutionPolicy Bypass -File packaging/windows/build-setup.ps1
 ```
 

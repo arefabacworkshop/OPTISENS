@@ -27,12 +27,14 @@ public sealed class ToolDispatcher
         """{"name": "set_specific_cm360", "description": "Set the recommended sensitivity to an exact cm/360 value.", "parameters": {"type": "object", "properties": {"cm360": {"type": "number"}}, "required": ["cm360"]}}"""
     ];
 
-    private readonly double _dpi;
+    private double _dpi;
     private readonly double _boundsLo;
     private readonly double _boundsHi;
 
     public double CurrentCm360 { get; private set; }
     public event Action<double>? Cm360Changed;
+
+    public void UpdateDpi(double dpi) => _dpi = dpi;
 
     public ToolDispatcher(double initialCm360, double dpi, double boundsLoCm360, double boundsHiCm360)
     {

@@ -4,19 +4,44 @@
         x:Class="OPTISENS.App.Views.ShellView"
         x:DataType="vm:ShellViewModel"
         x:CompileBindings="True"
-        Title="OPTISENS — AI-Assisted Sensitivity Finder"
+        Title="OPTISENS — Sensitivity Finder"
         Icon="avares://OPTISENS.App/Assets/icon.png"
         WindowState="FullScreen"
         WindowDecorations="None"
         Width="1280" Height="800"
         MinWidth="960" MinHeight="640"
-        Background="#090A0D">
+        Background="{StaticResource BgBaseBrush}">
   <DockPanel>
+    <Border DockPanel.Dock="Top" Height="36"
+            IsVisible="{Binding IsWindowBarVisible}"
+            Background="{StaticResource Surface1Brush}"
+            BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto" Margin="12,0,8,0">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Image Source="avares://OPTISENS.App/Assets/icon.png" Width="16" Height="16"/>
+          <TextBlock Text="OPTISENS" FontSize="11" FontWeight="Bold" LetterSpacing="2"
+                     Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center"/>
+          <Border CornerRadius="999" Padding="8,2"
+                  Background="{StaticResource Surface3Brush}"
+                  BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1">
+            <TextBlock Text="{Binding AppVersion}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+          </Border>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <Button Classes="ghost" Content="⛶" FontSize="14" Padding="9,3" ToolTip.Tip="Windowed / Fullscreen (F11)"
+                  Click="ToggleWindowState"/>
+          <Button Classes="ghost" Content="—" FontSize="14" Padding="9,3" Click="MinimizeWindow"/>
+          <Button Classes="ghost" Content="✕" FontSize="13" Padding="9,3" Click="CloseWindow"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
     <Border DockPanel.Dock="Top"
             IsVisible="{Binding RemediationBanner, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
             Background="#4A2020" Padding="14,10">
       <TextBlock Text="{Binding RemediationBanner}" Foreground="#FFD4D4" TextWrapping="Wrap"/>
     </Border>
+
     <ContentControl Content="{Binding CurrentPage}"/>
   </DockPanel>
 </Window>

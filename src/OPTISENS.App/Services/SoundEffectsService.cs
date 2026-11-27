@@ -9,6 +9,8 @@ public static partial class SoundEffectsService
     private const uint SND_NODEFAULT = 0x0002;
     private const uint SND_MEMORY = 0x0004;
 
+    public static volatile bool Muted;
+
     [LibraryImport("winmm.dll", EntryPoint = "PlaySoundW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool PlaySoundMemory(IntPtr pszSound, IntPtr hmod, uint fdwSound);
@@ -28,6 +30,7 @@ public static partial class SoundEffectsService
 
     public static void PlayHit(int streak)
     {
+        if (Muted) return;
         int idx = Math.Clamp(streak - 1, 0, HitBuffers.Length - 1);
         if (OperatingSystem.IsWindows())
         {
@@ -40,6 +43,7 @@ public static partial class SoundEffectsService
 
     public static void PlayMiss()
     {
+        if (Muted) return;
         if (OperatingSystem.IsWindows())
         {
             try { PlaySoundMemory(MissBuffer, IntPtr.Zero, SND_MEMORY | SND_ASYNC | SND_NODEFAULT); }
@@ -51,6 +55,7 @@ public static partial class SoundEffectsService
 
     public static void PlayPhaseChange()
     {
+        if (Muted) return;
         if (OperatingSystem.IsWindows())
         {
             try { PlaySoundMemory(PhaseBuffer, IntPtr.Zero, SND_MEMORY | SND_ASYNC | SND_NODEFAULT); }
@@ -66,13 +71,18 @@ public static partial class SoundEffectsService
         try
         {
             string args = player == "aplay" ? $"-q \"{wavPath}\"" : $"\"{wavPath}\"";
-            Process.Start(new ProcessStartInfo(player, args)
+            var p = Process.Start(new ProcessStartInfo(player, args)
             {
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             });
+            if (p is not null)
+            {
+                p.Exited += (_, _) => p.Dispose();
+                p.EnableRaisingEvents = true;
+            }
         }
         catch { /* ignore audio playback failure */ }
     }

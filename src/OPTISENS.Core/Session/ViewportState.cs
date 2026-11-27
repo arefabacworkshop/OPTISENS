@@ -34,6 +34,12 @@ public sealed class ViewportState
     public double SamplesPerSec { get; init; }
     public long DroppedSamples { get; init; }
     public double LastSwipeCm360 { get; init; }
+    public float AccentR { get; init; } = 0.0f;
+    public float AccentG { get; init; } = 0.90f;
+    public float AccentB { get; init; } = 1.0f;
+    public double LastHitAzimuthDeg { get; init; }
+    public double LastHitElevationDeg { get; init; }
+    public double HitRippleAgeS { get; init; } = 99.0;
 
     public static void Publish(ViewportState next) => Interlocked.Exchange(ref _current, next);
 

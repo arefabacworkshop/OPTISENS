@@ -16,10 +16,24 @@ public partial class ShellView : Window
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
 
+    private void ToggleWindowState(object? sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
+
+    private void MinimizeWindow(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void CloseWindow(object? sender, RoutedEventArgs e) => Close();
+
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
         if (DataContext is not ShellViewModel vm)
             return;
+
+        if (e.Key == Key.F11)
+        {
+            e.Handled = true;
+            ToggleWindowState(this, new RoutedEventArgs());
+            return;
+        }
 
         if (e.Key == Key.T &&
             e.KeyModifiers.HasFlag(KeyModifiers.Control) &&

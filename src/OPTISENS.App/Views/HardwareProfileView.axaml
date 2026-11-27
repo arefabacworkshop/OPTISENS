@@ -4,95 +4,109 @@
              xmlns:vm="using:OPTISENS.App.ViewModels"
              x:DataType="vm:HardwareProfileViewModel"
              x:CompileBindings="True">
-  <Grid Background="#090A0D">
-    <Border Width="460"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Background="#12151B"
-            BorderBrush="#242832"
-            BorderThickness="1"
-            CornerRadius="8"
-            Padding="32">
-      <StackPanel Spacing="16">
-        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="36" Height="36"/>
-          <StackPanel VerticalAlignment="Center" Spacing="2">
-            <TextBlock Text="OPTISENS" FontSize="13" FontWeight="Bold" LetterSpacing="2.2" Foreground="#00F0FF"/>
-            <TextBlock Text="AI-Assisted Sensitivity Finder" FontSize="11" Foreground="#525A68"/>
-          </StackPanel>
+  <ScrollViewer Background="{StaticResource BgBaseBrush}">
+    <StackPanel MaxWidth="900" Margin="28" Spacing="20"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+      <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+        <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="38" Height="38"/>
+        <StackPanel Spacing="2">
+          <TextBlock Text="OPTISENS" FontSize="14" FontWeight="Bold" LetterSpacing="2.2"
+                     Foreground="{StaticResource AccentCyanBrush}"/>
+          <TextBlock Text="Precision sensitivity calibration" FontSize="11"
+                     Foreground="{StaticResource TextMutedBrush}"/>
         </StackPanel>
+      </StackPanel>
 
-        <StackPanel Spacing="4">
-          <TextBlock Text="Hardware Profile" FontSize="26" FontWeight="SemiBold" Foreground="#F4F6F8"/>
-          <TextBlock Text="OPTISENS measures your optimal cm/360 — physical turn distance. Enter your hardware exactly."
-                     TextWrapping="Wrap" FontSize="13" Foreground="#8E97A6"/>
-        </StackPanel>
+      <Grid ColumnDefinitions="1.05*,0.95*" ColumnSpacing="20">
+        <!-- Hardware setup -->
+        <Border Grid.Column="0" Classes="card-elevated" Padding="28">
+          <StackPanel Spacing="20">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Hardware profile" Classes="eyebrow"/>
+              <TextBlock Text="Enter your hardware exactly" FontSize="24" FontWeight="SemiBold"
+                         Foreground="{StaticResource TextPrimaryBrush}"/>
+              <TextBlock Text="Six short rounds measure your true cm/360 — physical turn distance."
+                         TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
 
-        <StackPanel Spacing="6">
-          <TextBlock Text="Mouse DPI" FontSize="12" Foreground="#8E97A6"/>
-          <NumericUpDown Value="{Binding Dpi}" Minimum="100" Maximum="6400" Increment="50" FormatString="0"/>
-        </StackPanel>
+            <StackPanel Spacing="8">
+              <TextBlock Text="MOUSE DPI" Classes="eyebrow"/>
+              <NumericUpDown Value="{Binding Dpi}" Minimum="100" Maximum="6400" Increment="50" FormatString="0"/>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Classes="pill-tab" Content="400" Command="{Binding SelectDpiCommand}" CommandParameter="400"/>
+                <Button Classes="pill-tab" Content="800" Command="{Binding SelectDpiCommand}" CommandParameter="800"/>
+                <Button Classes="pill-tab" Content="1600" Command="{Binding SelectDpiCommand}" CommandParameter="1600"/>
+                <Button Classes="pill-tab" Content="3200" Command="{Binding SelectDpiCommand}" CommandParameter="3200"/>
+              </StackPanel>
+            </StackPanel>
 
-        <StackPanel Spacing="6">
-          <TextBlock Text="Mousepad usable width (cm)" FontSize="12" Foreground="#8E97A6"/>
-          <NumericUpDown Value="{Binding PadWidthCm}" Minimum="5" Maximum="120" Increment="1" FormatString="0.0"/>
-          <TextBlock Text="{Binding BoundsHintText}" Classes="mono-tabular"
-                     FontSize="11" Foreground="#525A68"/>
-        </StackPanel>
+            <StackPanel Spacing="8">
+              <TextBlock Text="MOUSEPAD USABLE WIDTH (CM)" Classes="eyebrow"/>
+              <NumericUpDown Value="{Binding PadWidthCm}" Minimum="5" Maximum="120" Increment="1" FormatString="0.0"/>
+              <TextBlock Text="{Binding BoundsHintText}" Classes="mono-tabular" FontSize="11"
+                         Foreground="{StaticResource TextMutedBrush}"/>
+            </StackPanel>
 
-        <StackPanel Spacing="6">
-          <TextBlock Text="Grip style" FontSize="12" Foreground="#8E97A6"/>
-          <ComboBox ItemsSource="{Binding GripStyles}" SelectedItem="{Binding SelectedGrip}" HorizontalAlignment="Stretch"/>
-        </StackPanel>
+            <StackPanel Spacing="8">
+              <TextBlock Text="GRIP STYLE" Classes="eyebrow"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="pill-tab" Content="Palm" Command="{Binding SelectGripCommand}" CommandParameter="Palm"
+                        Classes.active="{Binding IsPalmSelected}"/>
+                <Button Classes="pill-tab" Content="Claw" Command="{Binding SelectGripCommand}" CommandParameter="Claw"
+                        Classes.active="{Binding IsClawSelected}"/>
+                <Button Classes="pill-tab" Content="Fingertip" Command="{Binding SelectGripCommand}" CommandParameter="Fingertip"
+                        Classes.active="{Binding IsFingertipSelected}"/>
+              </StackPanel>
+            </StackPanel>
 
-        <!-- Interactive Pre-Session DPI & Raw Input Check -->
-        <Border Background="#0E1117" BorderBrush="#242832" BorderThickness="1" CornerRadius="6" Padding="12,10">
-          <StackPanel Spacing="8">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-              <TextBlock Grid.Column="0" Text="INPUT &amp; DPI CHECK" FontSize="10" FontWeight="SemiBold"
-                         LetterSpacing="1.4" Foreground="#8E97A6" VerticalAlignment="Center"/>
-              <Button Grid.Column="1" Content="Reset" Command="{Binding ResetInputTestCommand}"
-                      IsVisible="{Binding IsTestingInput}" Padding="8,4" FontSize="11"/>
-              <Button Grid.Column="2" Content="{Binding InputTestButtonText}" Command="{Binding ToggleInputTestCommand}"
-                      Padding="10,4" FontSize="11"/>
-            </Grid>
-            <TextBlock Text="{Binding InputTestReadout}" Classes="mono-tabular"
-                       FontSize="11" Foreground="#00F0FF" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding ValidationError}"
+                       IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       Foreground="{StaticResource AccentDangerBrush}" FontSize="12" TextWrapping="Wrap"/>
+
+            <Button Content="Start calibration" Command="{Binding StartCalibrationCommand}"
+                    Classes="cta" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14"/>
           </StackPanel>
         </Border>
 
-        <TextBlock Text="{Binding ValidationError}"
-                   IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                   Foreground="#FF4B4B" FontSize="12" TextWrapping="Wrap"/>
+        <!-- Diagnostics & quick actions -->
+        <StackPanel Grid.Column="1" Spacing="16">
+          <Border Classes="card" Padding="18">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Text="INPUT &amp; DPI CHECK" Classes="eyebrow" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Classes="ghost" Content="Reset" Command="{Binding ResetInputTestCommand}"
+                        IsVisible="{Binding IsTestingInput}" Padding="8,4" FontSize="11"/>
+                <Button Grid.Column="2" Classes="secondary" Content="{Binding InputTestButtonText}"
+                        Command="{Binding ToggleInputTestCommand}" Padding="10,5" FontSize="11"/>
+              </Grid>
+              <TextBlock Text="{Binding InputTestReadout}" Classes="mono-tabular" FontSize="12"
+                         Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Border>
 
-        <Button Content="Start calibration"
-                Command="{Binding StartCalibrationCommand}"
-                Classes="cta"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Center"
-                Padding="12"/>
+          <Border Classes="card" Padding="18">
+            <StackPanel Spacing="8">
+              <TextBlock Text="HOW TESTS WORK" Classes="eyebrow"/>
+              <TextBlock Text="1 · Follow the sphere — no clicking. 2 · Flick and click targets. 3 · Micro-dot precision."
+                         TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+              <Button Classes="ghost" Content="Open the full test guide →" HorizontalAlignment="Left"
+                      Command="{Binding OpenTestGuideCommand}" Padding="0" FontSize="12"
+                      Foreground="{StaticResource AccentCyanBrush}"/>
+            </StackPanel>
+          </Border>
 
-        <Grid ColumnDefinitions="*,Auto,*" Margin="0,2,0,0">
-          <Button Grid.Column="0" Command="{Binding OpenAiSettingsCommand}"
-                  Background="Transparent" BorderThickness="0"
-                  HorizontalAlignment="Left" Padding="4,2">
-            <TextBlock Text="AI Settings" Classes="mono-tabular"
-                       FontSize="11" Foreground="#7C9FFF"/>
-          </Button>
-          <Button Grid.Column="1" Command="{Binding OpenTestGuideCommand}"
-                  Background="Transparent" BorderThickness="0"
-                  HorizontalAlignment="Center" Padding="4,2">
-            <TextBlock Text="How Tests Work" Classes="mono-tabular"
-                       FontSize="11" Foreground="#00F0FF"/>
-          </Button>
-          <Button Grid.Column="2" Command="{Binding ExitAppCommand}"
-                  Background="Transparent" BorderThickness="0"
-                  HorizontalAlignment="Right" Padding="4,2">
-            <TextBlock Text="[ESC] Exit Application" Classes="mono-tabular"
-                       FontSize="11" Foreground="#525A68"/>
-          </Button>
-        </Grid>
-      </StackPanel>
-    </Border>
-  </Grid>
+          <Border Classes="card" Padding="18">
+            <StackPanel Spacing="10">
+              <TextBlock Text="AI COACH" Classes="eyebrow"/>
+              <TextBlock Text="{Binding AiStatusText}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"/>
+              <TextBlock Text="Optional. Enable anytime — local model or your own API. Never required to calibrate."
+                         TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
+              <Button Classes="secondary" Content="Configure AI" HorizontalAlignment="Left"
+                      Command="{Binding OpenAiSettingsCommand}" Padding="12,6"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>

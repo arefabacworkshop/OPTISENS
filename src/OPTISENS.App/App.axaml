@@ -5,31 +5,36 @@
              x:Class="OPTISENS.App.App"
              RequestedThemeVariant="Dark">
   <Application.Resources>
-    <Color x:Key="CanvasVoidColor">#090A0D</Color>
-    <Color x:Key="SurfaceCardColor">#12151B</Color>
-    <Color x:Key="SurfaceElevatedColor">#1C1F26</Color>
-    <Color x:Key="SurfaceControlColor">#262B35</Color>
-    <Color x:Key="BorderSubtleColor">#242832</Color>
-    <Color x:Key="BorderFocusedColor">#3B4252</Color>
-    <Color x:Key="TextPrimaryColor">#F4F6F8</Color>
-    <Color x:Key="TextMutedColor">#8E97A6</Color>
-    <Color x:Key="TextDimColor">#525A68</Color>
-    <Color x:Key="AccentCyanColor">#00F0FF</Color>
-    <Color x:Key="AccentAmberColor">#FFB03A</Color>
-    <Color x:Key="DangerRedColor">#FF4B4B</Color>
+    <!-- Obsidian & Precision Cyan design tokens -->
+    <Color x:Key="BgBaseColor">#080A0F</Color>
+    <Color x:Key="Surface1Color">#0F131A</Color>
+    <Color x:Key="Surface2Color">#151B24</Color>
+    <Color x:Key="Surface3Color">#1C2432</Color>
+    <Color x:Key="BorderSubtleColor">#1E2532</Color>
+    <Color x:Key="BorderActiveColor">#2E3A4E</Color>
+    <Color x:Key="TextPrimaryColor">#F8FAFC</Color>
+    <Color x:Key="TextSecondaryColor">#94A3B8</Color>
+    <Color x:Key="TextMutedColor">#64748B</Color>
+    <Color x:Key="AccentCyanColor">#00E5FF</Color>
+    <Color x:Key="AccentCyanSubtleColor">#1A00E5FF</Color>
+    <Color x:Key="AccentSuccessColor">#2EE59D</Color>
+    <Color x:Key="AccentAmberColor">#F59E0B</Color>
+    <Color x:Key="AccentDangerColor">#EF4444</Color>
 
-    <SolidColorBrush x:Key="CanvasVoidBrush" Color="{StaticResource CanvasVoidColor}"/>
-    <SolidColorBrush x:Key="SurfaceCardBrush" Color="{StaticResource SurfaceCardColor}"/>
-    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceElevatedColor}"/>
-    <SolidColorBrush x:Key="SurfaceControlBrush" Color="{StaticResource SurfaceControlColor}"/>
+    <SolidColorBrush x:Key="BgBaseBrush" Color="{StaticResource BgBaseColor}"/>
+    <SolidColorBrush x:Key="Surface1Brush" Color="{StaticResource Surface1Color}"/>
+    <SolidColorBrush x:Key="Surface2Brush" Color="{StaticResource Surface2Color}"/>
+    <SolidColorBrush x:Key="Surface3Brush" Color="{StaticResource Surface3Color}"/>
     <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
-    <SolidColorBrush x:Key="BorderFocusedBrush" Color="{StaticResource BorderFocusedColor}"/>
+    <SolidColorBrush x:Key="BorderActiveBrush" Color="{StaticResource BorderActiveColor}"/>
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
     <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}"/>
-    <SolidColorBrush x:Key="TextDimBrush" Color="{StaticResource TextDimColor}"/>
     <SolidColorBrush x:Key="AccentCyanBrush" Color="{StaticResource AccentCyanColor}"/>
+    <SolidColorBrush x:Key="AccentCyanSubtleBrush" Color="{StaticResource AccentCyanSubtleColor}"/>
+    <SolidColorBrush x:Key="AccentSuccessBrush" Color="{StaticResource AccentSuccessColor}"/>
     <SolidColorBrush x:Key="AccentAmberBrush" Color="{StaticResource AccentAmberColor}"/>
-    <SolidColorBrush x:Key="DangerRedBrush" Color="{StaticResource DangerRedColor}"/>
+    <SolidColorBrush x:Key="AccentDangerBrush" Color="{StaticResource AccentDangerColor}"/>
   </Application.Resources>
 
   <Application.Styles>
@@ -37,64 +42,106 @@
 
     <Style Selector="Window, UserControl">
       <Setter Property="FontFamily" Value="fonts:Inter#Inter, Segoe UI, Inter, Sans-Serif"/>
-      <Setter Property="Foreground" Value="#F4F6F8"/>
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
     </Style>
 
     <Style Selector="TextBlock.tabular">
       <Setter Property="FontFeatures" Value="tnum=1"/>
     </Style>
-
     <Style Selector="TextBlock.mono-tabular">
       <Setter Property="FontFamily" Value="Cascadia Mono, JetBrains Mono, SF Mono, Consolas, monospace"/>
       <Setter Property="FontFeatures" Value="tnum=1"/>
     </Style>
-
     <Style Selector="TextBlock.eyebrow">
       <Setter Property="FontSize" Value="11"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="LetterSpacing" Value="1.6"/>
-      <Setter Property="Foreground" Value="#8E97A6"/>
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
     </Style>
-
     <Style Selector="TextBlock.chat-prose">
       <Setter Property="FontSize" Value="13.5"/>
       <Setter Property="LineHeight" Value="21"/>
       <Setter Property="Foreground" Value="#E6EAF0"/>
     </Style>
 
-    <Style Selector="Button">
-      <Setter Property="CornerRadius" Value="4"/>
-      <Setter Property="BorderBrush" Value="#242832"/>
+    <!-- Reusable surfaces: 1px hairlines, consistent elevation -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource Surface1Brush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Background" Value="#262B35"/>
-      <Setter Property="Foreground" Value="#F4F6F8"/>
+      <Setter Property="CornerRadius" Value="12"/>
+    </Style>
+    <Style Selector="Border.card-elevated">
+      <Setter Property="Background" Value="{StaticResource Surface2Brush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderActiveBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="16"/>
+    </Style>
+
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderActiveBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Background" Value="{StaticResource Surface3Brush}"/>
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="Padding" Value="12,7"/>
     </Style>
     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="BorderBrush" Value="#3B4252"/>
-      <Setter Property="Background" Value="#2E3440"/>
+      <Setter Property="BorderBrush" Value="{StaticResource AccentCyanBrush}"/>
+      <Setter Property="Background" Value="{StaticResource Surface3Brush}"/>
     </Style>
 
     <Style Selector="Button.cta">
-      <Setter Property="Background" Value="#F4F6F8"/>
-      <Setter Property="Foreground" Value="#090A0D"/>
-      <Setter Property="BorderBrush" Value="#F4F6F8"/>
+      <Setter Property="Background" Value="{StaticResource AccentCyanBrush}"/>
+      <Setter Property="Foreground" Value="{StaticResource BgBaseBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource AccentCyanBrush}"/>
+      <Setter Property="CornerRadius" Value="10"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
     <Style Selector="Button.cta:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#00F0FF"/>
-      <Setter Property="Foreground" Value="#090A0D"/>
-      <Setter Property="BorderBrush" Value="#00F0FF"/>
+      <Setter Property="Background" Value="#5CF0FF"/>
+      <Setter Property="Foreground" Value="{StaticResource BgBaseBrush}"/>
+      <Setter Property="BorderBrush" Value="#5CF0FF"/>
+    </Style>
+
+    <Style Selector="Button.secondary">
+      <Setter Property="Background" Value="{StaticResource Surface3Brush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderActiveBrush}"/>
+      <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+    <Style Selector="Button.ghost">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+    <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#1AFFFFFF"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="Button.pill-tab">
+      <Setter Property="CornerRadius" Value="999"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderActiveBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="14,6"/>
+      <Setter Property="FontSize" Value="11"/>
+    </Style>
+    <Style Selector="Button.pill-tab.active">
+      <Setter Property="Background" Value="{StaticResource AccentCyanSubtleBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource AccentCyanBrush}"/>
+      <Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}"/>
     </Style>
 
     <Style Selector="TextBox, NumericUpDown, ComboBox">
-      <Setter Property="CornerRadius" Value="4"/>
-      <Setter Property="BorderBrush" Value="#242832"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Background" Value="#262B35"/>
-      <Setter Property="Foreground" Value="#F4F6F8"/>
+      <Setter Property="Background" Value="{StaticResource Surface2Brush}"/>
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="Padding" Value="10,6"/>
     </Style>
     <Style Selector="TextBox:focus-within, NumericUpDown:focus-within, ComboBox:focus-within">
-      <Setter Property="BorderBrush" Value="#3B4252"/>
+      <Setter Property="BorderBrush" Value="{StaticResource AccentCyanBrush}"/>
     </Style>
   </Application.Styles>
 

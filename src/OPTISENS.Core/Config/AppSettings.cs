@@ -23,11 +23,14 @@ public sealed record AppSettings(
     string? AssetsDirectory = null,
     string? InferenceBackend = null,
     bool HasCompletedSetup = false,
-    AiProviderMode AiMode = AiProviderMode.LocalLfm3,
+    AiProviderMode AiMode = AiProviderMode.Disabled,
     string? OpenAiBaseUrl = null,
     string? OpenAiApiKey = null,
     string? OpenAiModel = null,
-    bool HasSeenTestGuide = false)
+    bool HasSeenTestGuide = false,
+    string[]? PinnedGameIds = null,
+    bool SoundMuted = false,
+    bool UseInchesPer360 = false)
 {
     /// <summary>Resolves the effective backend mode, defaulting by platform when unset.</summary>
     public InferenceBackendMode GetBackendMode() =>

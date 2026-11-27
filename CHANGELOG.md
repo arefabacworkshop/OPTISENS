@@ -2,6 +2,22 @@
 
 All notable changes to **OPTISENS** are documented in this file.
 
+## [0.5.9] - 2026-11-27
+
+### Added
+- **36+ Game In-App Sensitivity Converter:** Searchable, category-filtered game catalog with pinned favorites, one-click value/config copy, cm/in toggle, eDPI readout, and a two-way "Compare / Convert From Existing Game" bar.
+- **Opt-In AI Coach:** AI now ships disabled by default with zero forced downloads; enable anytime from Hardware Profile or Results via custom OpenAI-compatible API or local LFM3 download with byte-weighted progress.
+- **Varied 6-Round Calibration:** Six iso-difficulty drill variants with distinct tracking/flick/dot patterns, subtle arena accents, 3D hit-ripple rings, a round stepper, and an enhanced rest card.
+- **Premium Obsidian & Cyan Design System:** Unified tokens, cards, segmented controls, minimal window bar, and a clean executive Results dashboard.
+
+### Fixed
+- Unearned miss at block timeout, invalid rounds poisoning the Gaussian Process, pause-modal timer drift, UI-thread abort race, 500 Hz HUD dispatcher flood, stale samples in the DPI test, the `30.0 cm/360` hero display bug, and AI reconfigure destroying calibration results.
+- Muted sound effects and Unix child-process handle leaks.
+
+### Changed
+- Fresh installs open directly into Hardware Profile with AI off; `--skip-ai` is now distinct from the persisted disabled setting.
+- Added true pause/resume with timestamps shifted across all scoring windows; added mute toggle (`[M]`).
+
 ## [0.5.8] - 2026-11-19
 
 ### Changed

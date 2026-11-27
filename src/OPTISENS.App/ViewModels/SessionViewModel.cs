@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,6 +12,33 @@ using OPTISENS.Core.Session;
 
 namespace OPTISENS.App.ViewModels;
 
+public enum RoundStepStatus { Pending, Active, Completed }
+
+public sealed class RoundStepDot : ViewModelBase
+{
+    private RoundStepStatus _status = RoundStepStatus.Pending;
+
+    public int Number { get; }
+
+    public RoundStepStatus Status
+    {
+        get => _status;
+        set
+        {
+            if (_status == value) return;
+            _status = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsActive));
+            OnPropertyChanged(nameof(IsCompleted));
+        }
+    }
+
+    public bool IsActive => Status == RoundStepStatus.Active;
+    public bool IsCompleted => Status == RoundStepStatus.Completed;
+
+    public RoundStepDot(int number) => Number = number;
+}
+
 public partial class SessionViewModel : ViewModelBase, IDisposable
 {
     private readonly RoundController _controller;
@@ -18,6 +46,9 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     private readonly CancellationTokenSource _cts = new();
     private Thread? _loopThread;
     private double _lastFrameMs;
+    private long _lastHudPostTicks;
+    private RoundPhase _lastHudPhase = RoundPhase.Idle;
+    private int _lastHudStreak = -1;
 
     [ObservableProperty] private string _roundText = "Round 1 / 6";
     [ObservableProperty] private string _blockStatus = "Get ready";
@@ -30,6 +61,15 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isHitCrosshair;
     [ObservableProperty] private string? _cursorWarning;
     [ObservableProperty] private bool _showAbortConfirm;
+    [ObservableProperty] private string _roundTitle = "";
+    [ObservableProperty] private string _roundSubtitle = "";
+    [ObservableProperty] private string _nextRoundPreview = "";
+    [ObservableProperty] private string _bestBsiText = "";
+    [ObservableProperty] private bool _isNewBestBsi;
+    [ObservableProperty] private bool _isMuted;
+
+    public ObservableCollection<RoundStepDot> RoundSteps { get; } =
+        new(Enumerable.Range(1, Constants.MaxRounds).Select(i => new RoundStepDot(i)));
 
     // Dev overlay (§9.7, --dev flag only)
     [ObservableProperty] private bool _devOverlayVisible;
@@ -44,6 +84,7 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     public SessionViewModel(IRawInputService input, HardwareProfile profile, bool devEnabled)
     {
         _devEnabled = devEnabled;
+        IsMuted = SoundEffectsService.Muted;
         _controller = new RoundController(input, profile.Dpi, profile.PadWidthCm);
         _controller.RequestCursorLock += () => Dispatcher.UIThread.Post(() => RequestCursorLock?.Invoke());
         _controller.RequestCursorUnlock += () => Dispatcher.UIThread.Post(() => RequestCursorUnlock?.Invoke());
@@ -81,6 +122,7 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
 
     public void RequestAbortPrompt()
     {
+        _controller.RequestPause();
         ShowAbortConfirm = true;
         RequestCursorUnlock?.Invoke();
     }
@@ -92,19 +134,33 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    private void ToggleMute()
+    {
+        SoundEffectsService.Muted = !SoundEffectsService.Muted;
+        IsMuted = SoundEffectsService.Muted;
+        try
+        {
+            var settings = AppSettingsStore.Load();
+            AppSettingsStore.Save(settings with { SoundMuted = IsMuted });
+        }
+        catch { /* best effort: mute still applies for this session */ }
+    }
+
+    [RelayCommand]
     private void CancelAbort()
     {
         ShowAbortConfirm = false;
-        RequestCursorLock?.Invoke();
+        _controller.RequestResume();
     }
 
     [RelayCommand]
     private void Abort()
     {
         ShowAbortConfirm = false;
+        _controller.RequestAbort();
+        _loopThread?.Join(500);
         _cts.Cancel();
         RequestCursorUnlock?.Invoke();
-        _controller.Abort(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
         if (_controller.FinalReport is null)
             ReturnToMenuRequested?.Invoke();
     }
@@ -151,16 +207,39 @@ public partial class SessionViewModel : ViewModelBase, IDisposable
             else if (snap.TargetDeltaYawDeg < -42.0) offScreen = "❮❮ TARGET";
         }
 
+        bool significant = hud.Phase != _lastHudPhase || hud.Streak != _lastHudStreak;
+        bool intervalElapsed = Stopwatch.GetTimestamp() - _lastHudPostTicks >= Stopwatch.Frequency / 30;
+        _lastHudPhase = hud.Phase;
+        _lastHudStreak = hud.Streak;
+        if (!significant && !intervalElapsed) return;
+        _lastHudPostTicks = Stopwatch.GetTimestamp();
+
         Dispatcher.UIThread.Post(() =>
         {
-            RoundText = $"Round {hud.RoundNumber} / {Constants.MaxRounds}";
+            RoundText = $"ROUND {hud.RoundNumber}/{hud.MaxRounds} · {hud.RoundTitle}";
             BlockStatus = hud.BlockStatus;
             BlockProgress = hud.BlockProgress;
             LiveStatus = hud.LiveStatus;
             IsRestPhase = hud.Phase == RoundPhase.Rest;
             RestSummaryText = hud.Phase == RoundPhase.Rest
-                ? $"BSI Score: {hud.LastRoundBsi:F1} / 100   ·   Accuracy: {hud.LastRoundAccuracy:F0}%"
+                ? $"BSI Score: {hud.LastRoundBsi:F1} / 100   ·   Accuracy: {hud.LastRoundAccuracy:F0}%" +
+                  (hud.IsNewBestBsi ? "   ·   NEW BEST" : "") +
+                  $"\n{hud.NextRoundPreview}"
                 : "";
+            RoundTitle = hud.RoundTitle;
+            RoundSubtitle = hud.RoundSubtitle;
+            NextRoundPreview = hud.NextRoundPreview;
+            BestBsiText = $"BEST {hud.BestBsiSoFar:F1}";
+            IsNewBestBsi = hud.IsNewBestBsi && hud.Phase is RoundPhase.Rest or RoundPhase.SessionComplete;
+            for (int i = 0; i < RoundSteps.Count; i++)
+            {
+                RoundSteps[i].Status = i + 1 < hud.RoundNumber
+                    || (i + 1 == hud.RoundNumber && hud.Phase is RoundPhase.Rest or RoundPhase.SessionComplete)
+                    ? RoundStepStatus.Completed
+                    : i + 1 == hud.RoundNumber
+                        ? RoundStepStatus.Active
+                        : RoundStepStatus.Pending;
+            }
             StreakText = hud.Streak >= 2 ? $"🔥 x{hud.Streak} STREAK" : "";
             OffScreenHintText = offScreen;
             IsHitCrosshair = snap.HitFlash || (snap.Targets.Length > 0 && snap.Targets[0].IsHit);

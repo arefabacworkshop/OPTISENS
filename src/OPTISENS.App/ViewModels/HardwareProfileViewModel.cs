@@ -24,10 +24,13 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _testCts;
     private double _distanceCm;
     private long _sampleCount;
+    private double _activeTestDpi = Constants.DpiDefault;
 
     [ObservableProperty] private decimal _dpi = Constants.DpiDefault;
     [ObservableProperty] private decimal _padWidthCm = (decimal)Constants.PadWidthDefaultCm;
-    [ObservableProperty] private GripOption _selectedGrip;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPalmSelected), nameof(IsClawSelected), nameof(IsFingertipSelected))]
+    private GripOption _selectedGrip;
     [ObservableProperty] private string? _validationError;
     [ObservableProperty] private string _boundsHintText = FormatBounds((double)Constants.PadWidthDefaultCm);
 
@@ -36,6 +39,8 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _inputTestReadout = "Swipe 10 cm on your pad to verify DPI accuracy.";
 
     partial void OnPadWidthCmChanged(decimal value) => BoundsHintText = FormatBounds((double)value);
+    partial void OnDpiChanged(decimal value) =>
+        Volatile.Write(ref _activeTestDpi, (double)Math.Clamp(value, Constants.DpiMin, Constants.DpiMax));
 
     private static string FormatBounds(double padWidthCm)
     {
@@ -49,6 +54,31 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
         new(GripStyle.Claw, "Claw Grip"),
         new(GripStyle.Fingertip, "Fingertip Grip"),
     ];
+
+    public bool IsPalmSelected => SelectedGrip.Value == GripStyle.Palm;
+    public bool IsClawSelected => SelectedGrip.Value == GripStyle.Claw;
+    public bool IsFingertipSelected => SelectedGrip.Value == GripStyle.Fingertip;
+
+    public string AiStatusText { get; } = AppSettingsStore.Load().AiMode switch
+    {
+        AiProviderMode.OpenAiCompatible => "AI Coach: API Connected",
+        AiProviderMode.LocalLfm3 => "AI Coach: Local LFM3 Ready",
+        _ => "AI Coach: Off (Default)"
+    };
+
+    [RelayCommand]
+    private void SelectGrip(string value)
+    {
+        if (Enum.TryParse<GripStyle>(value, ignoreCase: true, out var grip))
+            SelectedGrip = GripStyles.First(g => g.Value == grip);
+    }
+
+    [RelayCommand]
+    private void SelectDpi(string value)
+    {
+        if (int.TryParse(value, out int dpi))
+            Dpi = Math.Clamp(dpi, Constants.DpiMin, Constants.DpiMax);
+    }
 
     public HardwareProfileViewModel(IRawInputService? input = null)
     {
@@ -76,8 +106,10 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
             return;
         }
 
+        while (_input.Samples.TryRead(out _)) { }
         _distanceCm = 0;
         _sampleCount = 0;
+        Volatile.Write(ref _activeTestDpi, (double)Math.Clamp(Dpi, Constants.DpiMin, Constants.DpiMax));
         IsTestingInput = true;
         InputTestButtonText = "Stop DPI Check";
         InputTestReadout = "Move your mouse across the pad…";
@@ -93,7 +125,7 @@ public partial class HardwareProfileViewModel : ViewModelBase, IDisposable
             {
                 while (_input.Samples.TryRead(out var s))
                 {
-                    double dpi = (double)Math.Clamp(Dpi, Constants.DpiMin, Constants.DpiMax);
+                    double dpi = Volatile.Read(ref _activeTestDpi);
                     double counts = Math.Sqrt((double)s.DxCounts * s.DxCounts + (double)s.DyCounts * s.DyCounts);
                     _distanceCm += counts / dpi * 2.54;
                     _sampleCount++;

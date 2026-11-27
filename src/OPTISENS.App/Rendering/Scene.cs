@@ -1,3 +1,4 @@
+using OPTISENS.Core.Config;
 using OPTISENS.Core.Kinematics;
 using OPTISENS.Core.Session;
 using Silk.NET.OpenGL;
@@ -14,6 +15,7 @@ public sealed unsafe class Scene : IDisposable
     private int _gridVertexCount;
 
     private uint _tetherVao, _tetherVbo;
+    private uint _rippleVao, _rippleVbo;
 
     private uint _targetProg, _gridProg;
     private int _uTargetMvp, _uTargetColor;
@@ -33,6 +35,14 @@ public sealed unsafe class Scene : IDisposable
         CreateSphere();
         CreateArenaGrid();
         CreateTetherBuffer();
+        _rippleVao = _gl.GenVertexArray();
+        _gl.BindVertexArray(_rippleVao);
+        _rippleVbo = _gl.GenBuffer();
+        _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _rippleVbo);
+        _gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(24 * 3 * sizeof(float)), null, BufferUsageARB.DynamicDraw);
+        _gl.EnableVertexAttribArray(0);
+        _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
+        _gl.BindVertexArray(0);
     }
 
     private void CreateSphere()
@@ -151,7 +161,11 @@ public sealed unsafe class Scene : IDisposable
         // 1) Arena cage & floor grid
         _gl.UseProgram(_gridProg);
         _gl.UniformMatrix4(_uGridMvp, 1, false, vp.M);
-        _gl.Uniform4(_uGridColor, 0.16f, 0.22f, 0.30f, 0.38f);
+        _gl.Uniform4(_uGridColor,
+            0.10f + state.AccentR * 0.12f,
+            0.16f + state.AccentG * 0.12f,
+            0.24f + state.AccentB * 0.12f,
+            0.22f);
         _gl.BindVertexArray(_gridVao);
         _gl.DrawArrays(PrimitiveType.Lines, 0, (uint)_gridVertexCount);
 
@@ -168,7 +182,11 @@ public sealed unsafe class Scene : IDisposable
             _gl.BindVertexArray(_tetherVao);
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _tetherVbo);
             _gl.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)(6 * sizeof(float)), linePts);
-            _gl.Uniform4(_uGridColor, 0.0f, 0.94f, 1.0f, 0.55f);
+            _gl.Uniform4(_uGridColor,
+                0.10f + state.AccentR * 0.90f,
+                0.30f + state.AccentG * 0.64f,
+                0.45f + state.AccentB * 0.55f,
+                0.55f);
             _gl.DrawArrays(PrimitiveType.Lines, 0, 2);
         }
 
@@ -199,10 +217,40 @@ public sealed unsafe class Scene : IDisposable
             }
             else
             {
-                _gl.Uniform3(_uTargetColor, 0.0f, 0.90f, 1.0f);   // Cyan primary target
+                _gl.Uniform3(_uTargetColor,
+                    0.12f + state.AccentR * 0.88f,
+                    0.35f + state.AccentG * 0.60f,
+                    0.55f + state.AccentB * 0.45f);
             }
 
             _gl.DrawElements(PrimitiveType.Triangles, (uint)_sphereIndexCount, DrawElementsType.UnsignedInt, null);
+        }
+
+        // 4) Expanding emerald hit-ripple ring on the target sphere
+        if (state.HitRippleAgeS < 0.24)
+        {
+            double progress = Math.Clamp(state.HitRippleAgeS / 0.24, 0.0, 1.0);
+            double radiusDeg = Constants.FlickTargetRadiusDeg * (1.0 + 1.4 * progress);
+            float* ring = stackalloc float[24 * 3];
+            for (int i = 0; i < 24; i++)
+            {
+                double a = 2.0 * Math.PI * i / 24.0;
+                var (x, y, z) = SphericalToWorld(
+                    state.LastHitAzimuthDeg + Math.Cos(a) * radiusDeg,
+                    state.LastHitElevationDeg + Math.Sin(a) * radiusDeg,
+                    distM);
+                ring[i * 3] = x;
+                ring[i * 3 + 1] = y;
+                ring[i * 3 + 2] = z;
+            }
+
+            _gl.UseProgram(_gridProg);
+            _gl.UniformMatrix4(_uGridMvp, 1, false, vp.M);
+            _gl.Uniform4(_uGridColor, 0.18f, 0.92f, 0.52f, (float)(0.85 * (1.0 - progress)));
+            _gl.BindVertexArray(_rippleVao);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _rippleVbo);
+            _gl.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)(24 * 3 * sizeof(float)), ring);
+            _gl.DrawArrays(PrimitiveType.LineLoop, 0, 24);
         }
 
         _gl.BindVertexArray(0);
@@ -217,6 +265,8 @@ public sealed unsafe class Scene : IDisposable
         _gl.DeleteVertexArray(_gridVao);
         _gl.DeleteBuffer(_tetherVbo);
         _gl.DeleteVertexArray(_tetherVao);
+        _gl.DeleteBuffer(_rippleVbo);
+        _gl.DeleteVertexArray(_rippleVao);
         _gl.DeleteProgram(_targetProg);
         _gl.DeleteProgram(_gridProg);
     }

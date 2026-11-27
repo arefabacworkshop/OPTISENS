@@ -18,7 +18,12 @@ public sealed record HudSnapshot(
     string LiveStatus,
     int Streak = 0,
     double LastRoundBsi = 0,
-    double LastRoundAccuracy = 0);
+    double LastRoundAccuracy = 0,
+    string RoundTitle = "",
+    string RoundSubtitle = "",
+    string NextRoundPreview = "",
+    double BestBsiSoFar = 0,
+    bool IsNewBestBsi = false);
 
 public sealed class RoundController
 {
@@ -47,6 +52,19 @@ public sealed class RoundController
     private double _hitFlashUntilS;
     private double _missFlashUntilS;
     private volatile bool _skipRestRequested;
+    private volatile bool _pauseRequested;
+    private volatile bool _resumeRequested;
+    private volatile bool _abortRequested;
+    private bool _isPaused;
+    private double _pausedAtS;
+    private int _invalidRetriesInRound;
+    private bool _retryPending;
+    private const int MaxInvalidRetriesPerRound = 2;
+    private double _lastHitAtS = -99.0;
+    private double _lastHitAzDeg;
+    private double _lastHitElDeg;
+    private double _bestBsi;
+    private bool _isNewBestBsi;
 
     // SampleRing sequence + time windows for blocks A, B, C
     private long _winAStartSeq, _winAEndSeq;
@@ -73,6 +91,7 @@ public sealed class RoundController
     }
 
     public RoundPhase Phase => _phase;
+    public bool IsPaused => _isPaused;
     public int RoundNumber => _roundIndex;
     public IReadOnlyList<RoundScore> RoundScores => _roundScores;
     public IReadOnlyList<RoundInvalidReason> InvalidReasons => _invalidReasons;
@@ -96,6 +115,9 @@ public sealed class RoundController
     }
 
     public void RequestSkipRest() => _skipRestRequested = true;
+    public void RequestPause() => _pauseRequested = true;
+    public void RequestResume() => _resumeRequested = true;
+    public void RequestAbort() => _abortRequested = true;
 
     public void Abort(double nowS)
     {
@@ -115,6 +137,56 @@ public sealed class RoundController
     {
         if (_phase is RoundPhase.Idle or RoundPhase.SessionComplete or RoundPhase.Aborted)
             return;
+
+        if (_abortRequested)
+        {
+            _abortRequested = false;
+            Abort(nowS);
+            return;
+        }
+
+        if (_pauseRequested)
+        {
+            _pauseRequested = false;
+            if (!_isPaused)
+            {
+                _isPaused = true;
+                _pausedAtS = nowS;
+                RequestCursorUnlock?.Invoke();
+            }
+        }
+
+        if (_resumeRequested)
+        {
+            _resumeRequested = false;
+            if (_isPaused)
+            {
+                double delta = Math.Max(0, nowS - _pausedAtS);
+                _phaseStartS += delta;
+                _sessionStartS += delta;
+                _roundStartS += delta;
+                _rateWindowStartS += delta;
+                _hitFlashUntilS += delta;
+                _missFlashUntilS += delta;
+                _winAStartS += delta;
+                _winAEndS += delta;
+                _winBStartS += delta;
+                _winBEndS += delta;
+                _winCStartS += delta;
+                _winCEndS += delta;
+                _scenario?.ShiftTime(delta);
+                while (_input.Samples.TryRead(out _)) { }
+                _prevButtons = _input.CurrentButtons;
+                _isPaused = false;
+                RequestCursorLock?.Invoke();
+            }
+        }
+
+        if (_isPaused)
+        {
+            while (_input.Samples.TryRead(out _)) { }
+            return;
+        }
 
         bool leftEdge = DrainInput(nowS);
         AdvanceStateMachine(nowS, leftEdge);
@@ -212,9 +284,11 @@ public sealed class RoundController
 
             case RoundPhase.BlockFlick:
             {
-                var outcome = _scenario!.Tick(nowS, _yawDeg, _pitchDeg, leftEdge);
+                var hitTarget = _scenario!.CurrentTargets.Length > 0 ? _scenario.CurrentTargets[0] : (TargetSphere?)null;
+                var outcome = _scenario.Tick(nowS, _yawDeg, _pitchDeg, leftEdge);
                 if (outcome == TickOutcome.Hit)
                 {
+                    RecordHit(nowS, hitTarget);
                     _hitFlashUntilS = nowS + 0.09;
                     TargetHit?.Invoke(_scenario.Streak);
                 }
@@ -242,9 +316,11 @@ public sealed class RoundController
 
             case RoundPhase.BlockDot:
             {
-                var outcome = _scenario!.Tick(nowS, _yawDeg, _pitchDeg, leftEdge);
+                var hitTarget = _scenario!.CurrentTargets.Length > 0 ? _scenario.CurrentTargets[0] : (TargetSphere?)null;
+                var outcome = _scenario.Tick(nowS, _yawDeg, _pitchDeg, leftEdge);
                 if (outcome == TickOutcome.Hit)
                 {
+                    RecordHit(nowS, hitTarget);
                     _hitFlashUntilS = nowS + 0.09;
                     TargetHit?.Invoke(_scenario.Streak);
                 }
@@ -274,6 +350,16 @@ public sealed class RoundController
         }
     }
 
+    private void RecordHit(double nowS, TargetSphere? target)
+    {
+        _lastHitAtS = nowS;
+        if (target is { } t)
+        {
+            _lastHitAzDeg = t.AzimuthDeg;
+            _lastHitElDeg = t.ElevationDeg;
+        }
+    }
+
     private void PublishViewportState(double nowS)
     {
         var targets = _scenario?.CurrentTargets ?? Array.Empty<TargetSphere>();
@@ -299,13 +385,20 @@ public sealed class RoundController
             TargetDeltaPitchDeg = deltaPitch,
             SamplesPerSec = _samplesPerSec,
             DroppedSamples = 0,
-            LastSwipeCm360 = _lastSwipeCm360
+            LastSwipeCm360 = _lastSwipeCm360,
+            AccentR = _scenario?.Variant.AccentR ?? 0.0f,
+            AccentG = _scenario?.Variant.AccentG ?? 0.90f,
+            AccentB = _scenario?.Variant.AccentB ?? 1.0f,
+            LastHitAzimuthDeg = _lastHitAzDeg,
+            LastHitElevationDeg = _lastHitElDeg,
+            HitRippleAgeS = nowS - _lastHitAtS < 0.24 ? nowS - _lastHitAtS : 99.0
         });
     }
 
     private void BeginNextRound(double nowS)
     {
         _skipRestRequested = false;
+        _retryPending = false;
         _roundIndex++;
         _roundStartS = nowS - _sessionStartS;
         _currentProbeCm360 = _session.NextProbeCm360();
@@ -333,6 +426,21 @@ public sealed class RoundController
         var reason = (validA && validB && validC) ? RoundInvalidReason.None : RoundInvalidReason.InsufficientSamples;
         _invalidReasons.Add(reason);
 
+        if (reason == RoundInvalidReason.InsufficientSamples && _invalidRetriesInRound < MaxInvalidRetriesPerRound)
+        {
+            _invalidRetriesInRound++;
+            _retryPending = true;
+            _roundIndex--; // keep the same probe and re-run the same round number
+            _phase = RoundPhase.Rest;
+            _phaseStartS = nowS;
+            PhaseChanged?.Invoke(_phase);
+            EmitHud(nowS);
+            return;
+        }
+
+        _invalidRetriesInRound = 0;
+        _retryPending = false;
+
         double accB = mB.Attempts > 0 ? (double)mB.Hits / mB.Attempts : 0;
         double accC = mC.Attempts > 0 ? (double)mC.Hits / mC.Attempts : 0;
 
@@ -346,6 +454,9 @@ public sealed class RoundController
         var roundScore = _scorer.Score(_currentProbeCm360, scoredBlocks, _roundStartS);
         _roundScores.Add(roundScore);
         _session.CompleteRound(roundScore);
+        double bsi = roundScore.YNorm * 100.0;
+        _isNewBestBsi = bsi > _bestBsi + 0.05;
+        if (_isNewBestBsi) _bestBsi = bsi;
 
         if (_session.CanRunRound && !_session.IsDone)
         {
@@ -406,15 +517,22 @@ public sealed class RoundController
                 "PHASE 3/3 · MICRO-DOT + LEFT-CLICK",
                 Math.Clamp(elapsed / Constants.BlockDotS, 0, 1),
                 $"Hits: {_scenario?.DotAttempts.Count(a => a.Hit) ?? 0}/{_scenario?.DotAttempts.Count ?? 0}   ({Math.Max(0, Constants.BlockDotS - elapsed):F1}s)"),
-            RoundPhase.Rest => (
-                $"ROUND {_roundIndex} COMPLETE · REST ({Math.Max(1, (int)Math.Ceiling(Constants.RestS - elapsed))}s)",
-                Math.Clamp(elapsed / Constants.RestS, 0, 1),
-                $"Round BSI: {lastBsi:F1}  |  Accuracy: {lastAcc:F0}%  —  Press [SPACE] to start Round {_roundIndex + 1}"),
+            RoundPhase.Rest => _retryPending
+                ? (
+                    "LOW INPUT DATA — RETRYING ROUND",
+                    Math.Clamp(elapsed / Constants.RestS, 0, 1),
+                    $"Not enough motion samples. Re-running Round {_roundIndex + 1}. Press [SPACE] to retry now.")
+                : (
+                    $"ROUND {_roundIndex} COMPLETE · REST ({Math.Max(1, (int)Math.Ceiling(Constants.RestS - elapsed))}s)",
+                    Math.Clamp(elapsed / Constants.RestS, 0, 1),
+                    $"Round BSI: {lastBsi:F1}  |  Accuracy: {lastAcc:F0}%  —  Press [SPACE] to start Round {_roundIndex + 1}"),
             RoundPhase.SessionComplete => ("SESSION COMPLETE", 1.0, ""),
             RoundPhase.Aborted => ("ABORTED", 0.0, ""),
             _ => ("IDLE", 0.0, "")
         };
 
+        var variant = RoundVariant.ForRound(_roundIndex);
+        var next = RoundVariant.ForRound(_roundIndex + 1);
         HudUpdated?.Invoke(new HudSnapshot(
             _phase,
             _roundIndex,
@@ -424,6 +542,11 @@ public sealed class RoundController
             live,
             _scenario?.Streak ?? 0,
             lastBsi,
-            lastAcc));
+            lastAcc,
+            variant.Title,
+            variant.Subtitle,
+            $"NEXT: ROUND {_roundIndex + 1} · {next.Title} ({next.Subtitle})",
+            _bestBsi,
+            _isNewBestBsi));
     }
 }

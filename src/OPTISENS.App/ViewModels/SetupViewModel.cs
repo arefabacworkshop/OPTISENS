@@ -29,12 +29,13 @@ public partial class SetupViewModel : ViewModelBase
     public string AppVersion { get; } =
         "v" + (typeof(SetupViewModel).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion.Split('+')[0] ?? "0.5.8");
+            .InformationalVersion.Split('+')[0] ?? "0.5.9");
 
     private readonly AssetBootstrapper _bootstrapper = new();
     private CancellationTokenSource? _cts;
 
     public bool IsReconfigure { get; }
+    public string StatusBadgeText => IsReconfigure ? "AI COACH SETTINGS" : "FIRST-RUN SETUP";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PrimaryCtaText))]
@@ -42,7 +43,7 @@ public partial class SetupViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocalSelected), nameof(IsOpenAiSelected), nameof(IsAiDisabled), nameof(PrimaryCtaText))]
-    private bool _isAiEnabled = true;
+    private bool _isAiEnabled;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocalSelected), nameof(IsOpenAiSelected), nameof(PrimaryCtaText))]
@@ -76,11 +77,11 @@ public partial class SetupViewModel : ViewModelBase
     {
         get
         {
-            if (!IsAiEnabled) return "Continue without AI";
-            if (SelectedProvider == AiProviderMode.OpenAiCompatible) return "Save & Continue";
+            if (!IsAiEnabled) return "Save (AI Disabled)";
+            if (SelectedProvider == AiProviderMode.OpenAiCompatible) return "Save & Enable API Coach";
             return AssetManifest.CheckAssets(TargetDirectory).IsReady
-                ? "Verify & Continue"
-                : "Download & Continue (~1.66 GB)";
+                ? "Enable Local AI Coach"
+                : "Download Model (~1.66 GB) & Enable";
         }
     }
 
@@ -90,20 +91,25 @@ public partial class SetupViewModel : ViewModelBase
     public event Action<string, bool>? SetupCompleted;
     public event Action? SetupCancelled;
 
-    public SetupViewModel(string initialDirectory, AppSettings? currentSettings = null, bool isReconfigure = false)
+    public SetupViewModel(string initialDirectory, AppSettings? currentSettings = null, bool isReconfigure = false, AiProviderMode? preselectMode = null)
     {
         IsReconfigure = isReconfigure;
         _targetDirectory = initialDirectory;
 
+        if (preselectMode is AiProviderMode.LocalLfm3 or AiProviderMode.OpenAiCompatible)
+        {
+            _isAiEnabled = true;
+            _selectedProvider = preselectMode.Value;
+        }
+        else if (currentSettings is not null)
+        {
+            _isAiEnabled = currentSettings.AiMode is AiProviderMode.LocalLfm3 or AiProviderMode.OpenAiCompatible;
+            _selectedProvider = currentSettings.AiMode == AiProviderMode.OpenAiCompatible
+                ? AiProviderMode.OpenAiCompatible
+                : AiProviderMode.LocalLfm3;
+        }
         if (currentSettings is not null)
         {
-            if (currentSettings.HasCompletedSetup)
-            {
-                _isAiEnabled = currentSettings.AiMode != AiProviderMode.Disabled;
-                _selectedProvider = currentSettings.AiMode == AiProviderMode.OpenAiCompatible
-                    ? AiProviderMode.OpenAiCompatible
-                    : AiProviderMode.LocalLfm3;
-            }
             if (!string.IsNullOrWhiteSpace(currentSettings.OpenAiBaseUrl))
                 _openAiBaseUrl = currentSettings.OpenAiBaseUrl;
             if (!string.IsNullOrWhiteSpace(currentSettings.OpenAiModel))
@@ -165,6 +171,14 @@ public partial class SetupViewModel : ViewModelBase
             case "openai":
                 OpenAiBaseUrl = "https://api.openai.com/v1";
                 OpenAiModel = "gpt-4o-mini";
+                break;
+            case "openrouter":
+                OpenAiBaseUrl = "https://openrouter.ai/api/v1";
+                OpenAiModel = "openai/gpt-4o-mini";
+                break;
+            case "groq":
+                OpenAiBaseUrl = "https://api.groq.com/openai/v1";
+                OpenAiModel = "llama-3.3-70b-versatile";
                 break;
             case "ollama":
                 OpenAiBaseUrl = "http://localhost:11434/v1";

@@ -88,23 +88,23 @@ public sealed class GpPlotControl : Control
 
     private const double PadL = 44, PadR = 16, PadT = 16, PadB = 28;
 
-    private static readonly IBrush BackgroundBrush = new SolidColorBrush(Color.Parse("#1C1F26"));
-    private static readonly IPen BorderPen = new Pen(new SolidColorBrush(Color.Parse("#242832")), 1);
+    private static readonly IBrush BackgroundBrush = new SolidColorBrush(Color.Parse("#151B24"));
+    private static readonly IPen BorderPen = new Pen(new SolidColorBrush(Color.Parse("#1E2532")), 1);
     private static readonly IBrush BandBrush = new SolidColorBrush(Color.Parse("#2800E5FF"));
-    private static readonly IPen MeanPen = new Pen(new SolidColorBrush(Color.Parse("#FF00F0FF")), 2);
+    private static readonly IPen MeanPen = new Pen(new SolidColorBrush(Color.Parse("#FF00E5FF")), 2);
     private static readonly IPen GuidePen = new Pen(new SolidColorBrush(Color.Parse("#44FFFFFF")), 1)
         { DashStyle = new DashStyle(new double[] { 3, 3 }, 0) };
-    private static readonly IPen SelectedPen = new Pen(new SolidColorBrush(Color.Parse("#FFB03A")), 1.5)
+    private static readonly IPen SelectedPen = new Pen(new SolidColorBrush(Color.Parse("#F59E0B")), 1.5)
         { DashStyle = new DashStyle(new double[] { 4, 3 }, 0) };
-    private static readonly IPen HoverPen = new Pen(new SolidColorBrush(Color.Parse("#6600F0FF")), 1);
-    private static readonly IBrush DotBrush = new SolidColorBrush(Color.Parse("#FFB03A"));
-    private static readonly IBrush HighlightDotBrush = new SolidColorBrush(Color.Parse("#00F0FF"));
-    private static readonly IPen DotPen = new Pen(new SolidColorBrush(Color.Parse("#090A0D")), 1);
-    private static readonly IPen HighlightRingPen = new Pen(new SolidColorBrush(Color.Parse("#F4F6F8")), 2);
-    private static readonly IBrush LabelBrush = new SolidColorBrush(Color.Parse("#8E97A6"));
-    private static readonly IBrush TooltipBgBrush = new SolidColorBrush(Color.Parse("#E6090A0D"));
-    private static readonly IPen TooltipBorderPen = new Pen(new SolidColorBrush(Color.Parse("#3B4252")), 1);
-    private static readonly IBrush TooltipTextBrush = new SolidColorBrush(Color.Parse("#F4F6F8"));
+    private static readonly IPen HoverPen = new Pen(new SolidColorBrush(Color.Parse("#6600E5FF")), 1);
+    private static readonly IBrush DotBrush = new SolidColorBrush(Color.Parse("#F59E0B"));
+    private static readonly IBrush HighlightDotBrush = new SolidColorBrush(Color.Parse("#00E5FF"));
+    private static readonly IPen DotPen = new Pen(new SolidColorBrush(Color.Parse("#080A0F")), 1);
+    private static readonly IPen HighlightRingPen = new Pen(new SolidColorBrush(Color.Parse("#F8FAFC")), 2);
+    private static readonly IBrush LabelBrush = new SolidColorBrush(Color.Parse("#94A3B8"));
+    private static readonly IBrush TooltipBgBrush = new SolidColorBrush(Color.Parse("#E6080A0F"));
+    private static readonly IPen TooltipBorderPen = new Pen(new SolidColorBrush(Color.Parse("#2E3A4E")), 1);
+    private static readonly IBrush TooltipTextBrush = new SolidColorBrush(Color.Parse("#F8FAFC"));
 
     private double MapX(double u) => PadL + u * (Bounds.Width - PadL - PadR);
     private double MapY(double z) => Bounds.Height - PadB - z * (Bounds.Height - PadT - PadB);

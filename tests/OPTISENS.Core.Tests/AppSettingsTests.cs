@@ -55,7 +55,32 @@ public class AppSettingsTests
             Assert.Equal(@"C:\Models", legacy.AssetsDirectory);
             Assert.False(legacy.HasCompletedSetup);
             Assert.False(legacy.HasSeenTestGuide);
-            Assert.Equal(AiProviderMode.LocalLfm3, legacy.AiMode);
+            Assert.Equal(AiProviderMode.Disabled, legacy.AiMode);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void AppSettings_DefaultsToAiDisabled_AndRoundTripsNewFields()
+    {
+        Assert.Equal(AiProviderMode.Disabled, new AppSettings().AiMode);
+
+        string tempDir = Path.Combine(Path.GetTempPath(), "optisens-test-" + Guid.NewGuid().ToString("N"));
+        string cfgPath = Path.Combine(tempDir, "settings.json");
+        try
+        {
+            var expected = new AppSettings(
+                PinnedGameIds: ["cs2", "apex"],
+                SoundMuted: true,
+                UseInchesPer360: true);
+            AppSettingsStore.Save(expected, cfgPath);
+            var actual = AppSettingsStore.Load(cfgPath);
+            Assert.Equal(["cs2", "apex"], actual.PinnedGameIds!);
+            Assert.True(actual.SoundMuted);
+            Assert.True(actual.UseInchesPer360);
         }
         finally
         {

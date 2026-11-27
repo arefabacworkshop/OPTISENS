@@ -2,148 +2,236 @@
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OPTISENS.App.ViewModels"
+             xmlns:proj="using:OPTISENS.Core.Projection"
              xmlns:views="using:OPTISENS.App.Views"
              xmlns:controls="using:OPTISENS.App.Controls"
              x:DataType="vm:ResultsViewModel"
              x:CompileBindings="True">
-  <ScrollViewer Background="#090A0D">
-    <StackPanel Margin="36" Spacing="20" MaxWidth="1360">
+  <ScrollViewer Background="{StaticResource BgBaseBrush}">
+    <StackPanel Margin="28" Spacing="20" MaxWidth="1380">
 
-      <!-- Header Row -->
       <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="32" Height="32"/>
-          <TextBlock Text="Calibration Results" FontSize="26" FontWeight="SemiBold"
-                     Foreground="#F4F6F8" VerticalAlignment="Center"/>
+          <Image Source="avares://OPTISENS.App/Assets/logo-512.png" Width="30" Height="30"/>
+          <TextBlock Text="Calibration Results" FontSize="24" FontWeight="SemiBold"
+                     Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Button Content="[ESC] Back to Menu" Command="{Binding BackToMenuCommand}" Padding="14,9"/>
-          <Button Content="Re-Calibrate" Command="{Binding RecalibrateCommand}" Classes="cta" Padding="16,9"/>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+          <Button Classes="ghost" Content="[ESC] Back" Command="{Binding BackToMenuCommand}"/>
+          <Button Classes="cta" Content="Re-Calibrate" Command="{Binding RecalibrateCommand}"/>
         </StackPanel>
       </Grid>
 
       <Border IsVisible="{Binding DataQualityNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-              Background="#24FFB03A" BorderBrush="#66FFB03A" BorderThickness="1"
-              CornerRadius="6" Padding="12,8">
-        <TextBlock Text="{Binding DataQualityNote}" Foreground="#FFB03A" FontSize="12" TextWrapping="Wrap"/>
+              Background="#1AF59E0B" BorderBrush="#66F59E0B" BorderThickness="1"
+              CornerRadius="8" Padding="12,8">
+        <TextBlock Text="{Binding DataQualityNote}" Foreground="{StaticResource AccentAmberBrush}"
+                   FontSize="12" TextWrapping="Wrap"/>
       </Border>
 
-      <!-- High-Density 2-Column Layout -->
-      <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+      <!-- Tier 1: Hero + GP posterior -->
+      <Grid ColumnDefinitions="0.95*,1.05*" ColumnSpacing="20">
+        <Border Grid.Column="0" Classes="card-elevated" Padding="24">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="RECOMMENDED SENSITIVITY" Classes="eyebrow" VerticalAlignment="Center"/>
+              <Button Grid.Column="1" Classes="secondary" Content="Reset to Optimal"
+                      Command="{Binding ResetToOptimalCommand}"
+                      IsVisible="{Binding IsAdjusted}" Padding="10,4" FontSize="11"/>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Bottom">
+              <TextBlock Text="{Binding HeroValueText}" Classes="tabular" FontSize="58" FontWeight="Bold"
+                         Foreground="{StaticResource TextPrimaryBrush}"/>
+              <TextBlock Text="{Binding HeroUnitText}" FontSize="20" FontWeight="SemiBold"
+                         Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,10"
+                         VerticalAlignment="Bottom"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="14">
+              <TextBlock Text="{Binding HeroIn360Text}" Classes="tabular" FontSize="13"
+                         Foreground="{StaticResource AccentCyanBrush}"/>
+              <TextBlock Text="{Binding EdpiReadout}" Classes="tabular" FontSize="13"
+                         Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
+            <TextBlock Text="{Binding BandText}" Classes="tabular" FontSize="12"
+                       Foreground="{StaticResource TextMutedBrush}"/>
 
-        <!-- Left Column: Hero, Engine Projections, Coach Terminal -->
-        <StackPanel Grid.Column="0" Spacing="16">
-
-          <!-- Hero cm/360 Card with Interactive Fine-Tune -->
-          <Border Background="#1C1F26" BorderBrush="#242832" BorderThickness="1"
-                  CornerRadius="8" Padding="24">
-            <StackPanel Spacing="10">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="RECOMMENDED" FontSize="11" FontWeight="SemiBold"
-                           LetterSpacing="2" Foreground="#8E97A6" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Content="Reset to Optimal" Command="{Binding ResetToOptimalCommand}"
-                        IsVisible="{Binding IsAdjusted}" Padding="10,4" FontSize="11"/>
-              </Grid>
-              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Bottom">
-                <TextBlock Text="{Binding HeroValueText}" Classes="tabular"
-                           FontSize="56" FontWeight="Bold" Foreground="#F4F6F8"/>
-                <TextBlock Text="cm/360" FontSize="22" FontWeight="SemiBold"
-                           Foreground="#00F0FF" Margin="0,0,0,10" VerticalAlignment="Bottom"/>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,6,0,0">
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Fine-tune (or click the plot)" FontSize="11"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                <Slider Value="{Binding ActiveCm360}" Minimum="{Binding MinCm360}" Maximum="{Binding MaxCm360}"
+                        TickFrequency="0.1" IsSnapToTickEnabled="False"/>
               </StackPanel>
-              <TextBlock Text="{Binding BandText}" Classes="tabular"
-                         FontSize="13" Foreground="#8E97A6"/>
+              <StackPanel Grid.Column="1" Spacing="4" MinWidth="140">
+                <TextBlock Text="DPI" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <NumericUpDown Value="{Binding EditableDpi}" Minimum="100" Maximum="6400" Increment="50"
+                               FormatString="0"/>
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <Button Classes="pill-tab" Content="400" Command="{Binding SelectDpiCommand}" CommandParameter="400"/>
+                  <Button Classes="pill-tab" Content="800" Command="{Binding SelectDpiCommand}" CommandParameter="800"/>
+                  <Button Classes="pill-tab" Content="1600" Command="{Binding SelectDpiCommand}" CommandParameter="1600"/>
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
 
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,6,0,0">
-                <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Fine-tune cm/360 (or click plot)" FontSize="11" Foreground="#8E97A6"/>
-                  <Slider Value="{Binding ActiveCm360}" Minimum="{Binding MinCm360}" Maximum="{Binding MaxCm360}"
-                          TickFrequency="0.1" IsSnapToTickEnabled="False"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="2" Width="136">
-                  <TextBlock Text="DPI" FontSize="11" Foreground="#8E97A6"/>
-                  <NumericUpDown Value="{Binding EditableDpi}" Minimum="100" Maximum="6400" Increment="50" FormatString="0"/>
-                </StackPanel>
+        <Border Grid.Column="1" Classes="card-elevated" Padding="14">
+          <StackPanel Spacing="6">
+            <TextBlock Text="GAUSSIAN PROCESS POSTERIOR" Classes="eyebrow"/>
+            <controls:GpPlotControl x:Name="GpPlot" Height="330"
+                                    GridPredictions="{Binding Curve}"
+                                    Observations="{Binding Observations}"
+                                    MinCm360="{Binding MinCm360}"
+                                    MaxCm360="{Binding MaxCm360}"
+                                    SelectedCm360="{Binding ActiveCm360}"
+                                    HighlightedObservationIndex="{Binding HighlightedRoundIndex}"/>
+            <TextBlock Text="Hover to inspect BSI ± 95% CI · Click to preview a sensitivity"
+                       FontSize="11" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <!-- Tier 2: 36+ game sensitivity converter -->
+      <Border Classes="card-elevated" Padding="20">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Grid.Column="0" Spacing="4">
+              <TextBlock Text="GAME SENSITIVITY CONVERTER" Classes="eyebrow"/>
+              <TextBlock Text="{Binding GameCountText}" FontSize="11"
+                         Foreground="{StaticResource TextMutedBrush}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+              <TextBox Text="{Binding GameSearchQuery}" PlaceholderText="Search 36+ games…" Width="220"/>
+              <Button Classes="pill-tab" Content="cm/360" Command="{Binding UseCm360Command}"
+                      Classes.active="{Binding !UseInchesPer360}"/>
+              <Button Classes="pill-tab" Content="in/360" Command="{Binding UseInches360Command}"
+                      Classes.active="{Binding UseInchesPer360}"/>
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Classes="pill-tab" Content="All" Command="{Binding SetCategoryCommand}"
+                    CommandParameter="{x:Static proj:GameCategory.All}" Classes.active="{Binding AllCategoryActive}"/>
+            <Button Classes="pill-tab" Content="Pinned" Command="{Binding TogglePinnedOnlyCommand}"
+                    Classes.active="{Binding ShowPinnedOnly}"/>
+            <Button Classes="pill-tab" Content="Tactical" Command="{Binding SetCategoryCommand}"
+                    CommandParameter="{x:Static proj:GameCategory.TacticalFps}" Classes.active="{Binding IsTacticalActive}"/>
+            <Button Classes="pill-tab" Content="Hero" Command="{Binding SetCategoryCommand}"
+                    CommandParameter="{x:Static proj:GameCategory.HeroShooter}" Classes.active="{Binding IsHeroActive}"/>
+            <Button Classes="pill-tab" Content="BR" Command="{Binding SetCategoryCommand}"
+                    CommandParameter="{x:Static proj:GameCategory.BattleRoyale}" Classes.active="{Binding IsBattleRoyaleActive}"/>
+            <Button Classes="pill-tab" Content="Arena" Command="{Binding SetCategoryCommand}"
+                    CommandParameter="{x:Static proj:GameCategory.ArenaAndTrainers}" Classes.active="{Binding IsArenaActive}"/>
+            <Button Classes="pill-tab" Content="Mil-Sim" Command="{Binding SetCategoryCommand}"
+                    CommandParameter="{x:Static proj:GameCategory.ExtractionAndMilSim}" Classes.active="{Binding IsMilSimActive}"/>
+            <Button Classes="pill-tab" Content="Other" Command="{Binding SetCategoryCommand}"
+                    CommandParameter="{x:Static proj:GameCategory.SandboxAndOther}" Classes.active="{Binding IsOtherActive}"/>
+          </StackPanel>
+
+          <!-- Compare / convert from existing game -->
+          <Border Classes="card" Padding="12">
+            <StackPanel Spacing="8">
+              <TextBlock Text="COMPARE / CONVERT FROM EXISTING GAME" Classes="eyebrow"/>
+              <Grid ColumnDefinitions="2*,1*,0.8*,Auto,Auto" ColumnSpacing="8">
+                <ComboBox Grid.Column="0" ItemsSource="{Binding AllGames}" SelectedItem="{Binding SourceGame}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="proj:GameDefinition">
+                      <TextBlock Text="{Binding Name}"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBox Grid.Column="1" Text="{Binding SourceSensInput}" PlaceholderText="Current sens"/>
+                <NumericUpDown Grid.Column="2" Value="{Binding SourceDpiInput}" Minimum="100" Maximum="6400"
+                               Increment="50" FormatString="0"/>
+                <Button Grid.Column="3" Classes="secondary" Content="Preview in Converter"
+                        Command="{Binding ApplySourceGameCm360Command}"/>
+                <Button Grid.Column="4" Classes="ghost" Content="Reset to Optimal"
+                        Command="{Binding ResetToOptimalCommand}" IsVisible="{Binding IsPreviewingGame}"/>
               </Grid>
+              <TextBlock Text="{Binding ComparisonSummary}" FontSize="12"
+                         Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
 
-          <!-- Engine Projections (4-column UniformGrid) -->
           <ItemsControl ItemsSource="{Binding Projections}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
-                <UniformGrid Columns="4"/>
+                <WrapPanel/>
               </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:ProjectionCard">
-                <Border Background="#12151B" BorderBrush="#242832" BorderThickness="1"
-                        CornerRadius="8" Margin="0,0,8,0" Padding="14">
-                  <StackPanel Spacing="8">
-                    <TextBlock Text="{Binding GameName}" FontSize="11" Foreground="#8E97A6"/>
-                    <TextBlock Text="{Binding SensText}" Classes="tabular"
-                               FontSize="20" FontWeight="SemiBold" Foreground="#F4F6F8"/>
-                    <Button Content="{Binding ButtonLabel}" Command="{Binding CopyCommand}"
-                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                            Padding="8,5" FontSize="11"/>
+                <Border Classes="card" Width="290" Margin="0,0,10,10" Padding="14">
+                  <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Grid.Column="0" Text="{Binding GameName}" FontSize="12"
+                                 Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                      <Button Grid.Column="1" Classes="ghost" Command="{Binding TogglePinCommand}" Padding="2">
+                        <Panel>
+                          <TextBlock Text="★" FontSize="15"
+                                     Foreground="{StaticResource AccentAmberBrush}" IsVisible="{Binding IsPinned}"/>
+                          <TextBlock Text="☆" FontSize="15"
+                                     Foreground="{StaticResource TextMutedBrush}" IsVisible="{Binding !IsPinned}"/>
+                        </Panel>
+                      </Button>
+                    </Grid>
+                    <TextBlock Text="{Binding SensText}" Classes="tabular" FontSize="22"
+                               FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding CategoryLabel}" FontSize="10"
+                               Foreground="{StaticResource TextMutedBrush}"/>
+                    <TextBlock Text="{Binding Note}"
+                               IsVisible="{Binding Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               FontSize="10" Foreground="{StaticResource AccentAmberBrush}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Button Classes="secondary" Content="{Binding CopyLabel}" Command="{Binding CopyCommand}"
+                              Padding="10,4" FontSize="11"/>
+                      <Button Classes="secondary" Content="{Binding CopyConfigLabel}"
+                              Command="{Binding CopyConfigCommand}" Padding="10,4" FontSize="11"
+                              IsVisible="{Binding ConfigCommand, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
                   </StackPanel>
                 </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-
-          <!-- Coach Terminal -->
-          <views:CoachTerminalView DataContext="{Binding Coach}" MinHeight="280"/>
         </StackPanel>
+      </Border>
 
-        <!-- Right Column: GP Posterior Plot + Kinematic Breakdown -->
-        <StackPanel Grid.Column="1" Spacing="16">
-          <Border Background="#1C1F26" BorderBrush="#242832" BorderThickness="1"
-                  CornerRadius="8" Padding="12">
-            <StackPanel Spacing="6">
-              <controls:GpPlotControl x:Name="GpPlot"
-                             Height="340"
-                             GridPredictions="{Binding Curve}"
-                             Observations="{Binding Observations}"
-                             MinCm360="{Binding MinCm360}"
-                             MaxCm360="{Binding MaxCm360}"
-                             SelectedCm360="{Binding ActiveCm360}"
-                             HighlightedObservationIndex="{Binding HighlightedRoundIndex}"/>
-              <TextBlock Text="Hover to inspect BSI ± 95% CI · Click anywhere on curve to preview sensitivity"
-                         FontSize="11" Foreground="#525A68" HorizontalAlignment="Center"/>
-            </StackPanel>
-          </Border>
+      <!-- Tier 3: Kinematics + optional AI coach -->
+      <Grid ColumnDefinitions="1*,1*" ColumnSpacing="20">
+        <Border Grid.Column="0" Classes="card" Padding="16">
+          <StackPanel Spacing="8">
+            <TextBlock Text="KINEMATIC BREAKDOWN" Classes="eyebrow"/>
+            <ItemsControl ItemsSource="{Binding Rounds}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:RoundRow">
+                  <Button Command="{Binding $parent[UserControl].((vm:ResultsViewModel)DataContext).SelectRoundCommand}"
+                          CommandParameter="{Binding}" IsEnabled="{Binding IsDataRow}"
+                          Background="Transparent" BorderThickness="0" Padding="4,5"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Grid ColumnDefinitions="50,*,*,*,*,*">
+                      <TextBlock Grid.Column="0" Text="{Binding RoundText}" Classes="tabular" FontSize="12"
+                                 Foreground="{StaticResource TextSecondaryBrush}"/>
+                      <TextBlock Grid.Column="1" Text="{Binding ProbeText}" Classes="tabular" FontSize="12"
+                                 Foreground="{StaticResource TextPrimaryBrush}"/>
+                      <TextBlock Grid.Column="2" Text="{Binding BsiText}" Classes="tabular" FontSize="12"
+                                 Foreground="{StaticResource AccentCyanBrush}"/>
+                      <TextBlock Grid.Column="3" Text="{Binding AccuracyText}" Classes="tabular" FontSize="12"
+                                 Foreground="{StaticResource TextPrimaryBrush}"/>
+                      <TextBlock Grid.Column="4" Text="{Binding JerkText}" Classes="tabular" FontSize="12"
+                                 Foreground="{StaticResource TextSecondaryBrush}"/>
+                      <TextBlock Grid.Column="5" Text="{Binding FlickText}" Classes="tabular" FontSize="12"
+                                 Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
 
-          <Border Background="#12151B" BorderBrush="#242832" BorderThickness="1"
-                  CornerRadius="8" Padding="16">
-            <StackPanel Spacing="8">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="KINEMATIC BREAKDOWN" FontSize="11" FontWeight="SemiBold"
-                           LetterSpacing="1.6" Foreground="#8E97A6"/>
-                <TextBlock Grid.Column="1" Text="Click a round to highlight on plot" FontSize="11" Foreground="#525A68"/>
-              </Grid>
-              <ItemsControl ItemsSource="{Binding Rounds}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:RoundRow">
-                    <Button Command="{Binding $parent[UserControl].((vm:ResultsViewModel)DataContext).SelectRoundCommand}"
-                            CommandParameter="{Binding}"
-                            IsEnabled="{Binding IsDataRow}"
-                            Background="Transparent" BorderThickness="0" Padding="4,5"
-                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                      <Grid ColumnDefinitions="60,*,*,*,*,*">
-                        <TextBlock Grid.Column="0" Text="{Binding RoundText}" Classes="tabular" FontSize="12" Foreground="#8E97A6"/>
-                        <TextBlock Grid.Column="1" Text="{Binding ProbeText}" Classes="tabular" FontSize="12" Foreground="#F4F6F8"/>
-                        <TextBlock Grid.Column="2" Text="{Binding BsiText}" Classes="tabular" FontSize="12" Foreground="#00F0FF"/>
-                        <TextBlock Grid.Column="3" Text="{Binding AccuracyText}" Classes="tabular" FontSize="12" Foreground="#F4F6F8"/>
-                        <TextBlock Grid.Column="4" Text="{Binding JerkText}" Classes="tabular" FontSize="12" Foreground="#8E97A6"/>
-                        <TextBlock Grid.Column="5" Text="{Binding FlickText}" Classes="tabular" FontSize="12" Foreground="#8E97A6"/>
-                      </Grid>
-                    </Button>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </Border>
-        </StackPanel>
+        <views:CoachTerminalView Grid.Column="1" DataContext="{Binding Coach}" MinHeight="300"/>
       </Grid>
     </StackPanel>
   </ScrollViewer>

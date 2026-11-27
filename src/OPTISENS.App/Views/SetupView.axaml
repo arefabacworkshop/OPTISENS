@@ -21,11 +21,11 @@
     </Style>
     <Style Selector="Button.provider-card.selected">
       <Setter Property="Background" Value="#142033"/>
-      <Setter Property="BorderBrush" Value="#00F0FF"/>
+      <Setter Property="BorderBrush" Value="#00E5FF"/>
     </Style>
     <Style Selector="Button.provider-card.selected /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#142033"/>
-      <Setter Property="BorderBrush" Value="#00F0FF"/>
+      <Setter Property="BorderBrush" Value="#00E5FF"/>
     </Style>
     <Style Selector="Button.preset-pill">
       <Setter Property="Background" Value="#181C24"/>
@@ -38,18 +38,18 @@
     </Style>
     <Style Selector="Button.preset-pill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#222834"/>
-      <Setter Property="BorderBrush" Value="#7C9FFF"/>
+      <Setter Property="BorderBrush" Value="#00E5FF"/>
       <Setter Property="Foreground" Value="#F2F5FA"/>
     </Style>
   </UserControl.Styles>
 
-  <Grid Background="#0B0E14">
+  <Grid Background="{StaticResource BgBaseBrush}">
     <!-- subtle ambient radial glow -->
     <Ellipse Width="700" Height="700" HorizontalAlignment="Center" VerticalAlignment="Center"
              IsHitTestVisible="False" Opacity="0.16">
       <Ellipse.Fill>
         <RadialGradientBrush>
-          <GradientStop Color="#7C9FFF" Offset="0"/>
+          <GradientStop Color="#00E5FF" Offset="0"/>
           <GradientStop Color="#000B0E14" Offset="1"/>
         </RadialGradientBrush>
       </Ellipse.Fill>
@@ -72,11 +72,11 @@
                   <TextBlock Text="OPTISENS" FontSize="15" FontWeight="Bold"
                              LetterSpacing="2.2" Foreground="#F2F5FA"/>
                   <TextBlock Text="{Binding AppVersion}" FontSize="12" FontWeight="Medium"
-                             VerticalAlignment="Center" Foreground="#7C9FFF"/>
+                             VerticalAlignment="Center" Foreground="#00E5FF"/>
                 </StackPanel>
-                <Border Background="#1E7C9FFF" CornerRadius="999" Padding="9,3" HorizontalAlignment="Left">
-                  <TextBlock Text="FIRST-RUN SETUP" FontSize="10" FontWeight="SemiBold"
-                             LetterSpacing="1.4" Foreground="#9AB4FF"/>
+                <Border Background="#1A00E5FF" CornerRadius="999" Padding="9,3" HorizontalAlignment="Left">
+                  <TextBlock Text="{Binding StatusBadgeText}" FontSize="10" FontWeight="SemiBold"
+                             LetterSpacing="1.4" Foreground="{StaticResource AccentCyanBrush}"/>
                 </Border>
               </StackPanel>
             </StackPanel>
@@ -95,7 +95,7 @@
                 <TextBlock Grid.Column="0" Text="OPTISENS DATA &amp; ASSETS FOLDER" FontSize="10.5"
                            FontWeight="SemiBold" LetterSpacing="1.2" Foreground="#8E97A6" VerticalAlignment="Center"/>
                 <Button Grid.Column="1" Content="Reset default" Command="{Binding ResetDefaultFolderCommand}"
-                        Background="Transparent" BorderThickness="0" Foreground="#7C9FFF" Padding="4,0" FontSize="11.5"/>
+                        Background="Transparent" BorderThickness="0" Foreground="#00E5FF" Padding="4,0" FontSize="11.5"/>
               </Grid>
               <Border Background="#10131A" BorderBrush="#22FFFFFF" BorderThickness="1"
                       CornerRadius="10" Padding="12,8">
@@ -146,7 +146,7 @@
                     <Grid ColumnDefinitions="*,Auto">
                       <TextBlock Grid.Column="0" Text="Local AI · LFM3-1.7B" FontSize="13.5" FontWeight="SemiBold" Foreground="#F2F5FA"/>
                       <Border Grid.Column="1" Background="#1E00F0FF" CornerRadius="999" Padding="7,2">
-                        <TextBlock Text="OFFLINE" FontSize="9.5" FontWeight="Bold" LetterSpacing="0.8" Foreground="#00F0FF"/>
+                        <TextBlock Text="OFFLINE" FontSize="9.5" FontWeight="Bold" LetterSpacing="0.8" Foreground="#00E5FF"/>
                       </Border>
                     </Grid>
                     <TextBlock Text="Downloads ~1.66 GB once. Runs privately on your CPU or GPU with no API key."
@@ -161,7 +161,7 @@
                   <StackPanel Spacing="6">
                     <Grid ColumnDefinitions="*,Auto">
                       <TextBlock Grid.Column="0" Text="OpenAI-Compatible" FontSize="13.5" FontWeight="SemiBold" Foreground="#F2F5FA"/>
-                      <Border Grid.Column="1" Background="#1E7C9FFF" CornerRadius="999" Padding="7,2">
+                      <Border Grid.Column="1" Background="#1A00E5FF" CornerRadius="999" Padding="7,2">
                         <TextBlock Text="0 MB" FontSize="9.5" FontWeight="Bold" LetterSpacing="0.8" Foreground="#9AB4FF"/>
                       </Border>
                     </Grid>
@@ -199,6 +199,8 @@
                     <Button Content="OpenAI" Command="{Binding ApplyPresetCommand}" CommandParameter="openai" Classes="preset-pill"/>
                     <Button Content="Ollama" Command="{Binding ApplyPresetCommand}" CommandParameter="ollama" Classes="preset-pill"/>
                     <Button Content="LM Studio" Command="{Binding ApplyPresetCommand}" CommandParameter="lmstudio" Classes="preset-pill"/>
+                    <Button Content="OpenRouter" Command="{Binding ApplyPresetCommand}" CommandParameter="openrouter" Classes="preset-pill"/>
+                    <Button Content="Groq" Command="{Binding ApplyPresetCommand}" CommandParameter="groq" Classes="preset-pill"/>
                     <Button Content="Custom" Command="{Binding ApplyPresetCommand}" CommandParameter="custom" Classes="preset-pill"/>
                   </StackPanel>
 
@@ -225,7 +227,7 @@
                     <Button Grid.Column="0" Content="Test Connection" Command="{Binding TestConnectionCommand}"
                             IsEnabled="{Binding !IsTestingConnection}"
                             Padding="12,6" CornerRadius="8" FontSize="12"
-                            Background="#1C2530" BorderBrush="#2A3A4A" Foreground="#00F0FF"/>
+                            Background="#1C2530" BorderBrush="#2A3A4A" Foreground="#00E5FF"/>
                     <TextBlock Grid.Column="1" Text="{Binding ConnectionTestStatus}"
                                Foreground="{Binding ConnectionTestBrush}"
                                FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
@@ -279,7 +281,7 @@
                     IsVisible="{Binding IsChoosingOptions}"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Padding="14,12" CornerRadius="12"
-                    Background="#7C9FFF" Foreground="#0B0E14" FontWeight="SemiBold" FontSize="14"/>
+                    Background="#00E5FF" Foreground="#0B0E14" FontWeight="SemiBold" FontSize="14"/>
 
             <Button Content="Cancel download" Command="{Binding CancelDownloadCommand}"
                     IsVisible="{Binding IsDownloading}"

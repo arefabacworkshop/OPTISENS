@@ -6,121 +6,169 @@
              x:DataType="vm:SessionViewModel"
              x:CompileBindings="True"
              Focusable="True">
-  <Grid Background="#090A0D">
+  <UserControl.Styles>
+    <Style Selector="Border.step">
+      <Setter Property="Width" Value="10"/>
+      <Setter Property="Height" Value="10"/>
+      <Setter Property="CornerRadius" Value="999"/>
+      <Setter Property="Background" Value="#2E3A4E"/>
+    </Style>
+    <Style Selector="Border.step.active">
+      <Setter Property="Background" Value="#00E5FF"/>
+      <Setter Property="Width" Value="26"/>
+      <Setter Property="CornerRadius" Value="999"/>
+    </Style>
+    <Style Selector="Border.step.done">
+      <Setter Property="Background" Value="#2EE59D"/>
+    </Style>
+  </UserControl.Styles>
 
-    <!-- 3D calibration viewport -->
+  <Grid Background="{StaticResource BgBaseBrush}">
     <controls:GlViewport x:Name="Viewport" Cursor="None"/>
 
-    <!-- Centered crosshair overlay (default white) -->
+    <!-- Default crosshair -->
     <Canvas IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center"
             IsVisible="{Binding !IsHitCrosshair}">
-      <Ellipse Width="4" Height="4" Fill="#00F0FF" Canvas.Left="-2" Canvas.Top="-2"/>
-      <Rectangle Width="2" Height="10" Fill="#E5FFFFFF" Canvas.Left="-1"  Canvas.Top="-14"/>
-      <Rectangle Width="2" Height="10" Fill="#E5FFFFFF" Canvas.Left="-1"  Canvas.Top="4"/>
+      <Ellipse Width="4" Height="4" Fill="#00E5FF" Canvas.Left="-2" Canvas.Top="-2"/>
+      <Rectangle Width="2" Height="10" Fill="#E5FFFFFF" Canvas.Left="-1" Canvas.Top="-14"/>
+      <Rectangle Width="2" Height="10" Fill="#E5FFFFFF" Canvas.Left="-1" Canvas.Top="4"/>
       <Rectangle Width="10" Height="2" Fill="#E5FFFFFF" Canvas.Left="-14" Canvas.Top="-1"/>
-      <Rectangle Width="10" Height="2" Fill="#E5FFFFFF" Canvas.Left="4"   Canvas.Top="-1"/>
+      <Rectangle Width="10" Height="2" Fill="#E5FFFFFF" Canvas.Left="4" Canvas.Top="-1"/>
     </Canvas>
 
-    <!-- Hit / On-target crosshair overlay (emerald green flash) -->
+    <!-- Hit / on-target crosshair -->
     <Canvas IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center"
             IsVisible="{Binding IsHitCrosshair}">
       <Ellipse Width="6" Height="6" Fill="#2EE59D" Canvas.Left="-3" Canvas.Top="-3"/>
-      <Rectangle Width="2" Height="12" Fill="#2EE59D" Canvas.Left="-1"  Canvas.Top="-16"/>
-      <Rectangle Width="2" Height="12" Fill="#2EE59D" Canvas.Left="-1"  Canvas.Top="4"/>
+      <Rectangle Width="2" Height="12" Fill="#2EE59D" Canvas.Left="-1" Canvas.Top="-16"/>
+      <Rectangle Width="2" Height="12" Fill="#2EE59D" Canvas.Left="-1" Canvas.Top="4"/>
       <Rectangle Width="12" Height="2" Fill="#2EE59D" Canvas.Left="-16" Canvas.Top="-1"/>
-      <Rectangle Width="12" Height="2" Fill="#2EE59D" Canvas.Left="4"   Canvas.Top="-1"/>
+      <Rectangle Width="12" Height="2" Fill="#2EE59D" Canvas.Left="4" Canvas.Top="-1"/>
     </Canvas>
 
-    <!-- Off-screen directional indicator -->
     <Border IsVisible="{Binding OffScreenHintText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
             HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,90,0,0"
-            Background="#CC12151B" BorderBrush="#00F0FF" BorderThickness="1"
+            Background="#CC0F131A" BorderBrush="#00E5FF" BorderThickness="1"
             CornerRadius="16" Padding="16,6" IsHitTestVisible="False">
       <TextBlock Text="{Binding OffScreenHintText}" FontWeight="Bold" FontSize="14"
-                 LetterSpacing="1.5" Foreground="#00F0FF"/>
+                 LetterSpacing="1.5" Foreground="#00E5FF"/>
     </Border>
 
-    <!-- Dev overlay (dev flag + F12) -->
-    <Border IsVisible="{Binding DevOverlayVisible}"
-            VerticalAlignment="Top" HorizontalAlignment="Left" Margin="16"
-            Background="#D912151B" BorderBrush="#242832" BorderThickness="1"
-            CornerRadius="4" Padding="12,8" IsHitTestVisible="False">
-      <TextBlock Text="{Binding DevOverlayText}" Classes="mono-tabular"
-                 FontSize="12" Foreground="#00F0FF"/>
+    <Border IsVisible="{Binding DevOverlayVisible}" VerticalAlignment="Top" HorizontalAlignment="Left"
+            Margin="16" Background="#D90F131A" BorderBrush="#2E3A4E" BorderThickness="1"
+            CornerRadius="8" Padding="12,8" IsHitTestVisible="False">
+      <TextBlock Text="{Binding DevOverlayText}" Classes="mono-tabular" FontSize="12"
+                 Foreground="#00E5FF"/>
     </Border>
 
-    <!-- Streak badge (top right) -->
-    <Border IsVisible="{Binding StreakText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-            VerticalAlignment="Top" HorizontalAlignment="Right" Margin="24"
-            Background="#D912151B" BorderBrush="#2EE59D" BorderThickness="1"
-            CornerRadius="6" Padding="14,8" IsHitTestVisible="False">
-      <TextBlock Text="{Binding StreakText}" Classes="tabular"
-                 FontWeight="Bold" FontSize="13" Foreground="#2EE59D"/>
-    </Border>
+    <!-- Top-center 6-round stepper + drill identity -->
+    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,18,0,0"
+                Spacing="10" IsHitTestVisible="False">
+      <Border Background="#D90F131A" BorderBrush="#2E3A4E" BorderThickness="1"
+              CornerRadius="999" Padding="14,7">
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <ItemsControl ItemsSource="{Binding RoundSteps}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="6"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:RoundStepDot">
+                <Border Classes="step" Classes.active="{Binding IsActive}" Classes.done="{Binding IsCompleted}"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="{Binding RoundText}" FontSize="12" FontWeight="SemiBold"
+                     Foreground="{StaticResource TextPrimaryBrush}" Margin="8,0,0,0"/>
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding RoundSubtitle}" FontSize="10" LetterSpacing="1.2"
+                 Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+    </StackPanel>
 
-    <!-- Cursor confinement fallback / GL error warning -->
+    <!-- Streak + mute (top right) -->
+    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="20" Spacing="8"
+                Orientation="Horizontal">
+      <Border IsVisible="{Binding StreakText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+              Background="#D90F131A" BorderBrush="#2EE59D" BorderThickness="1"
+              CornerRadius="999" Padding="12,6" IsHitTestVisible="False">
+        <TextBlock Text="{Binding StreakText}" Classes="tabular" FontWeight="Bold" FontSize="12"
+                   Foreground="#2EE59D"/>
+      </Border>
+      <Button Classes="ghost" Content="[M]" FontSize="11" Padding="8,4"
+              Command="{Binding ToggleMuteCommand}" ToolTip.Tip="Toggle sound (M)"
+              Foreground="{StaticResource TextSecondaryBrush}"/>
+    </StackPanel>
+
     <Border IsVisible="{Binding CursorWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
             VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16"
-            Background="#D93A1616" BorderBrush="#66FF4B4B" BorderThickness="1"
-            CornerRadius="4" Padding="12,6">
-      <TextBlock Text="{Binding CursorWarning}" Foreground="#FF4B4B" FontSize="12"/>
+            Background="#D93A1616" BorderBrush="#66EF4444" BorderThickness="1"
+            CornerRadius="8" Padding="12,6">
+      <TextBlock Text="{Binding CursorWarning}" Foreground="#EF4444" FontSize="12"/>
     </Border>
 
-    <!-- Inter-Round Rest Summary Card -->
-    <Border IsVisible="{Binding IsRestPhase}"
-            HorizontalAlignment="Center" VerticalAlignment="Center"
-            Background="#F212151B" BorderBrush="#00F0FF" BorderThickness="1"
-            CornerRadius="10" Padding="28,22">
+    <!-- Rest summary -->
+    <Border IsVisible="{Binding IsRestPhase}" HorizontalAlignment="Center" VerticalAlignment="Center"
+            Background="#F20F131A" BorderBrush="#00E5FF" BorderThickness="1"
+            CornerRadius="16" Padding="30,24" MinWidth="440">
       <StackPanel Spacing="12" HorizontalAlignment="Center">
-        <TextBlock Text="{Binding BlockStatus}" FontSize="14" FontWeight="Bold"
-                   LetterSpacing="1.4" Foreground="#00F0FF" HorizontalAlignment="Center"/>
-        <TextBlock Text="{Binding RestSummaryText}" Classes="tabular" FontSize="18"
-                   FontWeight="SemiBold" Foreground="#F4F6F8" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding BlockStatus}" FontSize="13" FontWeight="Bold" LetterSpacing="1.4"
+                   Foreground="#00E5FF" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding RestSummaryText}" Classes="tabular" FontSize="16"
+                   FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"
+                   HorizontalAlignment="Center" TextWrapping="Wrap"/>
+        <Border IsVisible="{Binding IsNewBestBsi}" CornerRadius="999" Padding="8,3"
+                Background="#1A2EE59D" BorderBrush="#2EE59D" BorderThickness="1"
+                HorizontalAlignment="Center">
+          <TextBlock Text="NEW BEST" FontSize="10" FontWeight="Bold" LetterSpacing="1.4"
+                     Foreground="#2EE59D"/>
+        </Border>
         <TextBlock Text="Relax your hand and re-center your mouse on the pad."
-                   FontSize="12" Foreground="#8E97A6" HorizontalAlignment="Center"/>
-        <Button Content="[SPACE] Start Next Round Now" Command="{Binding SkipRestCommand}"
-                Classes="cta" HorizontalAlignment="Center" Padding="18,10" Margin="0,6,0,0"/>
+                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+        <Button Content="[SPACE] Start Next Round" Command="{Binding SkipRestCommand}"
+                Classes="cta" HorizontalAlignment="Center" Padding="18,10" Margin="0,4,0,0"/>
       </StackPanel>
     </Border>
 
-    <!-- Pause / Abort Confirmation Modal -->
-    <Border IsVisible="{Binding ShowAbortConfirm}"
-            Background="#B3090A0D" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-      <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-              Background="#12151B" BorderBrush="#242832" BorderThickness="1"
-              CornerRadius="8" Padding="28">
+    <!-- Abort / finish confirmation -->
+    <Border IsVisible="{Binding ShowAbortConfirm}" Background="#B3080A0F" HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch">
+      <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
+              Classes="card-elevated" Padding="28">
         <StackPanel Spacing="14">
-          <TextBlock Text="Session Paused" FontSize="20" FontWeight="SemiBold" Foreground="#F4F6F8"/>
-          <TextBlock Text="Would you like to resume the current round, finish early with completed rounds, or return to the menu?"
-                     FontSize="13" Foreground="#8E97A6" TextWrapping="Wrap"/>
+          <TextBlock Text="Session Paused" FontSize="20" FontWeight="SemiBold"
+                     Foreground="{StaticResource TextPrimaryBrush}"/>
+          <TextBlock Text="Resume the current round, finish early with completed rounds, or return to the menu?"
+                     FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
           <Button Content="Resume Calibration" Command="{Binding CancelAbortCommand}"
                   Classes="cta" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12,10"/>
           <Button Content="Finish Early (View Partial Results)" Command="{Binding AbortCommand}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12,10"/>
+                  Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12,10"/>
           <Button Content="Discard &amp; Return to Menu" Command="{Binding ReturnToMenuCommand}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12,10"/>
+                  Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12,10"/>
         </StackPanel>
       </Border>
     </Border>
 
-    <!-- Floating HUD pill (D16: no sensitivity values, ever) -->
-    <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,32"
-            Background="#D912151B" BorderBrush="#242832" BorderThickness="1"
-            CornerRadius="8" Padding="20,14" IsHitTestVisible="False">
-      <StackPanel Spacing="8" MinWidth="440">
+    <!-- Glass HUD bar (D16: no sensitivity values, ever) -->
+    <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,28"
+            Background="#D90F131A" BorderBrush="#2E3A4E" BorderThickness="1"
+            CornerRadius="12" Padding="20,14" IsHitTestVisible="False">
+      <StackPanel Spacing="8" MinWidth="500">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-          <TextBlock Grid.Column="0" Text="{Binding RoundText}" Classes="tabular"
-                     FontWeight="SemiBold" FontSize="13" Foreground="#F4F6F8"/>
-          <TextBlock Grid.Column="1" Text="{Binding BlockStatus}"
-                     FontWeight="SemiBold" FontSize="12" Foreground="#00F0FF"/>
+          <TextBlock Grid.Column="0" Text="{Binding BlockStatus}" FontWeight="SemiBold" FontSize="13"
+                     Foreground="{StaticResource AccentCyanBrush}"/>
+          <TextBlock Grid.Column="1" Text="{Binding BestBsiText}" Classes="tabular" FontSize="11"
+                     Foreground="{StaticResource TextMutedBrush}"/>
         </Grid>
-        <ProgressBar Value="{Binding BlockProgress}" Minimum="0" Maximum="1"
-                     Height="3" Foreground="#00F0FF" Background="#242832"/>
+        <ProgressBar Value="{Binding BlockProgress}" Minimum="0" Maximum="1" Height="3"
+                     Foreground="#00E5FF" Background="#2E3A4E"/>
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-          <TextBlock Grid.Column="0" Text="{Binding LiveStatus}" Classes="tabular"
-                     Foreground="#8E97A6" FontSize="12"/>
-          <TextBlock Grid.Column="1" Text="[SPACE] Skip Rest · [ESC] Pause"
-                     Classes="mono-tabular" FontSize="11" Foreground="#525A68"
+          <TextBlock Grid.Column="0" Text="{Binding LiveStatus}" Classes="tabular" FontSize="12"
+                     Foreground="{StaticResource TextSecondaryBrush}"/>
+          <TextBlock Grid.Column="1" Text="[SPACE] Skip Rest · [M] Mute · [ESC] Pause"
+                     Classes="mono-tabular" FontSize="10" Foreground="{StaticResource TextMutedBrush}"
                      VerticalAlignment="Center"/>
         </Grid>
       </StackPanel>
